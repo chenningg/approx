@@ -24,7 +24,7 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 - Lint is `npm run lint` = oxlint (`.oxlintrc.json`), not eslint — do not add eslint configs.
 - TS (`tsconfig.app.json`) is strict: `verbatimModuleSyntax` (use `import type`) and `erasableSyntaxOnly` (no enums, namespaces, class parameter properties).
 - `vite.config.ts`: `@tanstack/router-plugin` must stay before `@vitejs/plugin-react` (order documented in the file). React Compiler (`reactCompilerPreset`) is enabled via babel. Routing is wired in `src/main.tsx` via `routeTree.gen.ts` + `createRouter`; routes live in `src/routes/`.
-- Styling is CSS-first Tailwind v4 (`@import "tailwindcss"` + daisyUI plugin in `src/index.css`; no tailwind config file).
+- Components are **Mantine v9** (`@mantine/core`, `@mantine/hooks`); styles come from `@mantine/core/styles.layer.css` imported in `src/index.css`, which uses CSS-first Tailwind v4 with explicit layers (`@layer theme, base, mantine, components, utilities;` + the three `tailwindcss/*.css` pieces). Keep Mantine's layer ahead of Tailwind utilities. `postcss.config.cjs` wires `postcss-preset-mantine` + `postcss-simple-vars`. `<MantineProvider>` wraps the router in `src/main.tsx`; component styles use hashed CSS-module class names (don't search for readable `.mantine-Button-root` — check `.m_<hash>`).
 - Docker: `frontend/compose.yaml` mounts `./src` and vite runs with `--host 0.0.0.0`; local `npm run dev` binds localhost. Port 5173.
 
 ## Docker layout
