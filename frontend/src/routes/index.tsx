@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
   Database,
@@ -6,80 +6,78 @@ import {
   Sparkles,
   TableProperties,
   type LucideIcon,
-} from 'lucide-react'
+} from "lucide-react";
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Feature = {
-  icon: LucideIcon
-  accent: string
-  title: string
-  body: string
-}
+  icon: LucideIcon;
+  accent: string;
+  title: string;
+  body: string;
+};
 
 const features: Feature[] = [
   {
     icon: Activity,
-    accent: 'bg-violet-500/10 text-violet-400 ring-violet-500/20',
-    title: 'Representative',
-    body: 'Synthetic records mirror the shape of your data — distributions, ranges and correlations survive the copy.',
+    accent: "bg-violet-500/10 text-violet-400 ring-violet-500/20",
+    title: "Representative",
+    body: "Synthetic records mirror the shape of your data — distributions, ranges and correlations survive the copy.",
   },
   {
     icon: ShieldCheck,
-    accent: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
-    title: 'Privacy-safe',
-    body: 'Outputs are generated, never copied. Real records never leave your pipeline as-is.',
+    accent: "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20",
+    title: "Privacy-safe",
+    body: "Outputs are generated, never copied. Real records never leave your pipeline as-is.",
   },
   {
     icon: TableProperties,
-    accent: 'bg-cyan-500/10 text-cyan-400 ring-cyan-500/20',
-    title: 'Schema-aware',
-    body: 'Column types, formats and constraints are respected, so generated data drops into existing systems.',
+    accent: "bg-cyan-500/10 text-cyan-400 ring-cyan-500/20",
+    title: "Schema-aware",
+    body: "Column types, formats and constraints are respected, so generated data drops into existing systems.",
   },
   {
     icon: Database,
-    accent: 'bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20',
-    title: 'Dataset-driven',
-    body: 'ApproX learns from your dataset and inherits its statistical character — bias included, visibly.',
+    accent: "bg-fuchsia-500/10 text-fuchsia-400 ring-fuchsia-500/20",
+    title: "Dataset-driven",
+    body: "ApproX learns from your dataset and inherits its statistical character — bias included, visibly.",
   },
-]
+];
 
 function LandingPage() {
   return (
     <>
       <section className="approx-bg">
         <div className="mx-auto max-w-3xl px-4 pb-24 pt-20 text-center sm:px-6 sm:pt-28">
-          <Badge variant="outline" className="mb-6 h-6 gap-1.5 rounded-full px-3">
+          <Badge
+            variant="outline"
+            className="mb-6 h-6 gap-1.5 rounded-full px-3"
+          >
             <Sparkles className="size-3" />
             Generate representative fake data
           </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-6xl">
-            Synthetic data that{' '}
+            Synthetic data that{" "}
             <span className="bg-linear-to-r from-violet-400 to-cyan-300 bg-clip-text text-transparent">
               behaves like the real thing
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
             Upload a dataset and ApproX learns its structure and distribution,
-            then generates fake data that is statistically representative of
-            the original — without exposing it.
+            then generates fake data that is statistically representative of the
+            original — without exposing it.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="h-11 rounded-full px-8 text-base">
+            <Button asChild size="lg" className="h-11 px-8 text-base">
               <Link to="/login">Log in</Link>
             </Button>
             <Button
               asChild
               variant="outline"
               size="lg"
-              className="h-11 rounded-full px-8 text-base"
+              className="h-11 px-8 text-base"
             >
               <a href="#features">How it works</a>
             </Button>
@@ -114,9 +112,9 @@ function LandingPage() {
         </div>
       </section>
     </>
-  )
+  );
 }
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   component: LandingPage,
-})
+});
