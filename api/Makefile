@@ -6,8 +6,8 @@ help: ## Show available targets
 install: ## Sync Python dependencies with uv
 	uv sync
 
-dev: ## Run the API locally with hot reload (uvicorn --reload)
-	uv run uvicorn api.main:app --reload --port 8000
+dev: ## Run the API locally with hot reload (fastapi dev)
+	uv run fastapi dev
 
 up: ## Build and start the API container (detached)
 	docker compose up -d

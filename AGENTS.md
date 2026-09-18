@@ -7,7 +7,7 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 | Task | Command |
 | --- | --- |
 | Everything in Docker (hot reload) | `make dev` (root, foreground) / `make up` (detached) |
-| API locally, hot reload | `make -C api dev` (= `uv run uvicorn api.main:app --reload --port 8000`) |
+| API locally, hot reload | `make -C api dev` (= `uv run fastapi dev`) |
 | Frontend locally, HMR | `make -C frontend dev` (= `npm run dev`) |
 | Per-sub Docker | `make -C <sub> up` / `down` / `logs` |
 | Install deps | `make install` (root) or `make -C <sub> install` |
@@ -16,7 +16,7 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 
 ## api/ — Python 3.14 + FastAPI with uv
 - Managed by uv (`api/uv.lock`, `api/.python-version` picks 3.14). Use `uv ...` from `api/`, never `pip`.
-- FastAPI app is `app` in `src/api/main.py` (top-level module `main`); there is no `api` package and no `[project.scripts]` entry — run via `uv run uvicorn api.main:app`. Don't point uvicorn at `api:app`.
+- FastAPI app is `app` in `src/main.py`. `[tool.uv] package = false` (flat layout — the `src` dir is a package named `src`, no `api` package); the entrypoint is set via `[tool.fastapi] entrypoint = "src.main:app"`. Run with `fastapi dev` (hot reload) or `fastapi run`; don't invoke uvicorn directly (`main:app`/`api:app` won't import).
 - No tests or linter (ruff not configured) — don't invent `pytest`/`ruff` targets.
 
 ## frontend/ — Vite 8 + React 19 + TS with npm

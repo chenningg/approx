@@ -7,7 +7,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --editable
+    uv sync --frozen --no-dev
 
 EXPOSE 8000
-CMD ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "fastapi", "run", "--host", "0.0.0.0", "--port", "8000"]
