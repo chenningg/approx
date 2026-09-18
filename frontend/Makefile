@@ -16,7 +16,7 @@ lint: ## Lint with oxlint
 	npm run lint
 
 up: ## Build and start the frontend container (detached)
-	docker compose up -d
+	docker compose up -d --build
 
 down: ## Stop the frontend container
 	docker compose down

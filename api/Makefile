@@ -10,7 +10,7 @@ dev: ## Run the API locally with hot reload (fastapi dev)
 	uv run fastapi dev
 
 up: ## Build and start the API container (detached)
-	docker compose up -d
+	docker compose up -d --build
 
 down: ## Stop the API container
 	docker compose down

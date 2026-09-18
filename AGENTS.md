@@ -29,5 +29,5 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 
 ## Docker layout
 - Root `compose.yaml` only `include`s `api/compose.yaml` and `frontend/compose.yaml` (compose v2.20+; project name `approx`, services `approx-api-1`/`approx-frontend-1`). Each sub-compose also works standalone from its directory.
-- Hot reload in containers relies on bind mounts (`./src:/app/src`) plus container-side watchers (uvicorn `--reload` for api, Vite HMR for frontend). No `--watch`/develop block is needed.
+- Hot reload in containers relies on bind mounts (`./src:/app/src`) plus container-side watchers (uvicorn `--reload` for api, Vite HMR for frontend). No `--watch`/develop block is needed. All `up`/`dev`/`api-up`/`frontend-up` targets run `docker compose ... --build` so dependency changes in `package*.json`/`uv.lock` are picked up.
 - Images: api uses `uv sync --frozen --no-dev --editable` (editable so the mounted source is imported); frontend uses `node:24-alpine`.
