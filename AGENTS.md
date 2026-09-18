@@ -7,7 +7,7 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 | Task | Command |
 | --- | --- |
 | Everything in Docker (hot reload) | `make dev` (root, foreground) / `make up` (detached) |
-| API locally, hot reload | `make -C api dev` (= `uv run uvicorn api:app --reload --port 8000`) |
+| API locally, hot reload | `make -C api dev` (= `uv run uvicorn api.main:app --reload --port 8000`) |
 | Frontend locally, HMR | `make -C frontend dev` (= `npm run dev`) |
 | Per-sub Docker | `make -C <sub> up` / `down` / `logs` |
 | Install deps | `make install` (root) or `make -C <sub> install` |
@@ -16,11 +16,11 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 
 ## api/ — Python 3.14 + FastAPI with uv
 - Managed by uv (`api/uv.lock`, `api/.python-version` picks 3.14). Use `uv ...` from `api/`, never `pip`.
-- FastAPI app is `app` in `src/api/__init__.py`; the `[project.scripts] api` entry (`api:main`) is a separate placeholder CLI. There is no server endpoint in pyproject — run via `uv run uvicorn api:app`.
+- FastAPI app is `app` in `src/api/main.py` (top-level module `main`); there is no `api` package and no `[project.scripts]` entry — run via `uv run uvicorn api.main:app`. Don't point uvicorn at `api:app`.
 - No tests or linter (ruff not configured) — don't invent `pytest`/`ruff` targets.
 
 ## frontend/ — Vite 8 + React 19 + TS with npm
-- `npm run build` is `vite build && tsc -b` — the order matters: **do not revert to `tsc -b && vite build`**. Vite's TanStack Router plugin generates `src/routeTree.gen.ts` during dev/build; tsc must run after it. `routeTree.gen.ts` is generated (untracked); the build works without it but committing it is fine.
+- `npm run build` is `vite build && tsc -b` — the order matters: **do not revert to `tsc -b && vite build`**. Vite's TanStack Router plugin generates `src/routeTree.gen.ts` during dev/build; tsc must run after it. `routeTree.gen.ts` is generated and committed.
 - Lint is `npm run lint` = oxlint (`.oxlintrc.json`), not eslint — do not add eslint configs.
 - TS (`tsconfig.app.json`) is strict: `verbatimModuleSyntax` (use `import type`) and `erasableSyntaxOnly` (no enums, namespaces, class parameter properties).
 - `vite.config.ts`: `@tanstack/router-plugin` must stay before `@vitejs/plugin-react` (order documented in the file). React Compiler (`reactCompilerPreset`) is enabled via babel. Routing is wired in `src/main.tsx` via `routeTree.gen.ts` + `createRouter`; routes live in `src/routes/`.
