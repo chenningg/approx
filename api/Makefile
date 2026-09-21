@@ -17,3 +17,6 @@ down: ## Stop the API container
 
 logs: ## Follow container logs
 	docker compose logs -f
+
+seed: ## Seed a demo user (EMAIL/PASSWORD env vars override defaults)
+	uv run python -m scripts.seed
