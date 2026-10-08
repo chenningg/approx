@@ -1,41 +1,40 @@
 from contextlib import asynccontextmanager
 
+from auth.routes import auth_router
+from auth.seed import seed_admin_users
+from config import config
+from db import DbBase, db_engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from src.database import DbBase, engine
-from src.routers import auth
-
-FRONTEND_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create database connection
-    async with engine.begin() as conn:
+    # Create database tables
+    async with db_engine.begin() as conn:
         # Create all tables
         await conn.run_sync(DbBase.metadata.create_all)
+
+    # Seed admin users
+    await seed_admin_users()
 
     yield
 
     # Close database connection
-    await engine.dispose()
+    await db_engine.dispose()
 
 
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=FRONTEND_ORIGINS,
+    allow_origins=config.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
+app.include_router(auth_router)
 
 
 @app.get("/")

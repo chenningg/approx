@@ -11,8 +11,11 @@ from sqlalchemy.orm import DeclarativeBase
 
 from src.config import config
 
-engine = create_async_engine(config.database_url)
-async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
+db_engine = create_async_engine(
+    config.database_url,
+    pool_pre_ping=True,
+)
+async_session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
 
 
 class DbBase(DeclarativeBase):
@@ -24,5 +27,5 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         yield async_session
 
 
-# Session dependency
+# DB session dependency
 DbSessionDep = Annotated[AsyncSession, Depends(get_db_session)]

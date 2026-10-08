@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.database import DbBase
+from src.db import DbBase
 
 
 class AuthUser(DbBase):
@@ -13,6 +13,9 @@ class AuthUser(DbBase):
     # Use UUIDv7 as primary key for better indexes
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid7)
     email: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
+    )
+    username: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False, index=True
     )
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)

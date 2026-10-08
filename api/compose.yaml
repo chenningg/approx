@@ -6,9 +6,8 @@ services:
       - "8000:8000"
     volumes:
       - ./src:/app/src
-    environment:
-      DATABASE_URL: postgresql+asyncpg://approx:approx@db:5432/approx
-      REDIS_URL: redis://redis:6379/0
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -18,14 +17,16 @@ services:
 
   db:
     image: postgres:18-alpine
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: approx
-      POSTGRES_PASSWORD: approx
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: approx
     ports:
       - "5432:5432"
     volumes:
-      - pgdata18:/var/lib/postgresql
+      - db_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U approx -d approx"]
       interval: 5s
@@ -37,7 +38,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redisdata:/data
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -45,5 +46,5 @@ services:
       retries: 10
 
 volumes:
-  pgdata18:
-  redisdata:
+  db_data:
+  redis_data:
