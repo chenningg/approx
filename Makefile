@@ -3,11 +3,11 @@
 dev: ## Run both containers via docker compose (foreground, hot reload)
 	docker compose build --no-cache && docker compose up --force-recreate
 
-up: ## Build (no cache) and start all containers
-	docker compose build --no-cache && docker compose up --force-recreate
+up: ## Build and start all containers
+	docker compose up --build -d --force-recreate
 
 down: ## Stop containers, remove built images and volumes
-	docker compose down --rmi local --volumes
+	docker compose down --remove-orphans -v
 
 logs: ## Follow logs from all containers
 	docker compose logs -f
