@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 
-from auth.routes import auth_router
-from auth.seed import seed_admin_users
-from config import config
-from db import DbBase, db_engine
+from src.auth.routes import auth_router
+from src.auth.seed import seed_admin_users
+from src.config import config
+from src.db import DbBase, db_engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

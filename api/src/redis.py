@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from config import config
+from src.config import config
 from fastapi import Depends
 from loguru import logger
 from redis.asyncio import Redis

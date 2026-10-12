@@ -1,7 +1,7 @@
 import json
 import secrets
 
-from dtos import LoginRequest, LoginResponse
+
 from fastapi import APIRouter, HTTPException, Response
 from sqlalchemy import select
 
@@ -9,8 +9,9 @@ from src.config import config
 from src.db import DbSessionDep
 from src.redis import RedisDep
 
-from .models import AuthUser
-from .utils import verify_password
+from src.auth.dtos import LoginRequest, LoginResponse
+from src.auth.models import AuthUser
+from src.auth.utils import verify_password
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
