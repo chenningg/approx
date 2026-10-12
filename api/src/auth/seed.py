@@ -5,8 +5,8 @@ from sqlalchemy import select
 
 from src.db import async_session_factory
 
-from .models import AuthUser
-from .utils import hash_password
+from src.auth.models import AuthUser
+from src.auth.utils import hash_password
 
 
 async def seed_admin_users() -> None:

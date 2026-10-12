@@ -12,7 +12,7 @@ from sqlalchemy.orm import DeclarativeBase
 from src.config import config
 
 db_engine = create_async_engine(
-    config.database_url,
+    config.db_url,
     pool_pre_ping=True,
 )
 async_session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
