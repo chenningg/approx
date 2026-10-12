@@ -10,10 +10,10 @@ dev: ## Run the API locally with hot reload (fastapi dev)
 	uv run fastapi dev
 
 up: ## Build and start the API container (detached)
-	docker compose up -d --build
+	docker compose build --no-cache && docker compose up --force-recreate
 
 down: ## Stop the API container
-	docker compose down
+	docker compose down --rmi local --volumes
 
 logs: ## Follow container logs
 	docker compose logs -f

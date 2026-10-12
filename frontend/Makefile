@@ -15,11 +15,11 @@ build: ## Typecheck and build for production
 lint: ## Lint with oxlint
 	npm run lint
 
-up: ## Build and start the frontend container (detached)
-	docker compose up -d --build
+up: ## Build and start the frontend container
+	docker compose build --no-cache && docker compose up --force-recreate
 
 down: ## Stop the frontend container
-	docker compose down
+	docker compose down --rmi local --volumes
 
 logs: ## Follow container logs
 	docker compose logs -f
