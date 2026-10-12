@@ -24,7 +24,7 @@ function LoginPage() {
   const navigate = useNavigate()
   const login = useMutation({
     mutationFn: loginRequest,
-    onSuccess: () => navigate({ to: '/' }),
+    onSuccess: () => navigate({ to: '/upload' }),
   })
 
   function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -116,6 +116,6 @@ function LoginPage() {
   )
 }
 
-export const Route = createFileRoute('/login')({
+export const Route = createFileRoute('/_auth/login')({
   component: LoginPage,
 })

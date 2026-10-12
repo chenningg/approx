@@ -115,6 +115,6 @@ function LandingPage() {
   );
 }
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_marketing/")({
   component: LandingPage,
 });
