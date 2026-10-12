@@ -13,7 +13,7 @@ class Config(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
-    database_url: str = "postgresql+asyncpg://approx:approx@localhost:5432/approx"
+    db_url: str = "postgresql+asyncpg://approx:approx@localhost:5432/approx"
     redis_url: str = "redis://localhost:6379/0"
 
     auth_session_cookie_name: str = "approx_sid"
