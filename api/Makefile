@@ -9,11 +9,11 @@ install: ## Sync Python dependencies with uv
 dev: ## Run the API locally with hot reload (fastapi dev)
 	uv run fastapi dev
 
-up: ## Build and start the API container (detached)
-	docker compose up --build -d --force-recreate
+up: ## Build and start the API container
+	docker compose up --build -d
 
 down: ## Stop the API container
-	docker compose down --remove-orphans -v
+	docker compose down --remove-orphans
 
 logs: ## Follow container logs
 	docker compose logs -f

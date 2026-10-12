@@ -16,10 +16,10 @@ lint: ## Lint with oxlint
 	npm run lint
 
 up: ## Build and start the frontend container
-	docker compose up --build -d --force-recreate
+	docker compose up --build -d
 
 down: ## Stop the frontend container
-	docker compose down --remove-orphans -v
+	docker compose down --remove-orphans
 
 logs: ## Follow container logs
 	docker compose logs -f
