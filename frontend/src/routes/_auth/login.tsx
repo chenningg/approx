@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Eye, EyeOff, Lock } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 import { login as loginRequest } from '@/features/auth/api'
+import { useAuthStore } from '@/features/auth/store'
 
 function LoginPage() {
   const [email, setEmail] = useState('')
@@ -22,9 +23,13 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   const navigate = useNavigate()
+  const setSession = useAuthStore((state) => state.setSession)
   const login = useMutation({
     mutationFn: loginRequest,
-    onSuccess: () => navigate({ to: '/upload' }),
+    onSuccess: (data) => {
+      setSession(data)
+      navigate({ to: '/upload' })
+    },
   })
 
   function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -117,5 +122,10 @@ function LoginPage() {
 }
 
 export const Route = createFileRoute('/_auth/login')({
+  beforeLoad: () => {
+    if (useAuthStore.getState().isAuthenticated) {
+      throw redirect({ to: '/upload' })
+    }
+  },
   component: LoginPage,
 })
