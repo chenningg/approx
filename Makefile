@@ -1,7 +1,7 @@
 .PHONY: dev up down logs api-dev frontend-dev api-up frontend-up
 
 dev: ## Run both containers via docker compose (foreground, hot reload)
-	docker compose build --no-cache && docker compose up --force-recreate
+	docker compose up --build -d --force-recreate
 
 up: ## Build and start all containers
 	docker compose up --build -d --force-recreate

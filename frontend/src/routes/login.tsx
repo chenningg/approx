@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { useMutation } from '@tanstack/react-query'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Eye, EyeOff, Lock } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
@@ -13,15 +14,22 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+import { login as loginRequest } from '@/features/auth/api'
+
 function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const navigate = useNavigate()
+  const login = useMutation({
+    mutationFn: loginRequest,
+    onSuccess: () => navigate({ to: '/' }),
+  })
+
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSubmitted(true)
+    login.mutate({ email, password })
   }
 
   return (
@@ -37,7 +45,7 @@ function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -81,13 +89,20 @@ function LoginPage() {
                 </Button>
               </div>
             </div>
-            {submitted && (
-              <p className="text-sm text-muted-foreground">
-                Authentication isn&apos;t wired up yet — nothing was sent.
+            {login.isError && (
+              <p className="text-sm text-destructive">
+                {login.error instanceof Error
+                  ? login.error.message
+                  : 'Login failed. Please try again.'}
               </p>
             )}
-            <Button type="submit" size="lg" className="w-full">
-              Log in
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={login.isPending}
+            >
+              {login.isPending ? 'Logging in…' : 'Log in'}
             </Button>
           </form>
         </CardContent>
