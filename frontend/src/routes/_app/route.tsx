@@ -1,24 +1,70 @@
-import { Link, Outlet, createFileRoute, redirect } from '@tanstack/react-router'
-import { BoxesIcon } from 'lucide-react'
+import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { BoxesIcon, LogOutIcon } from 'lucide-react'
+import { useRef, useState } from 'react'
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useAuthStore } from '@/features/auth/store'
 
-function UserAvatar({ username }: { username?: string }) {
-  const initials = username ? username.slice(0, 2).toUpperCase() : '??'
+function initials(username?: string) {
+  return username ? username.slice(0, 2).toUpperCase() : '??'
+}
+
+function UserMenu() {
+  const navigate = useNavigate()
+  const user = useAuthStore((state) => state.user)
+  const clear = useAuthStore((state) => state.clear)
+
+  function handleLogout() {
+    clear()
+    navigate({ to: '/login' })
+  }
 
   return (
-    <div
-      className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary ring-1 ring-primary/20"
-      aria-label={username ? `${username}'s profile` : 'User profile'}
-    >
-      {initials}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Open user menu"
+          className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary ring-1 ring-primary/20 transition-colors outline-none hover:ring-primary/40"
+        >
+          {initials(user?.username)}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className="w-56"
+      >
+        <DropdownMenuLabel>
+          <div className="flex flex-col">
+            <span className="truncate text-sm font-medium text-foreground">
+              {user?.username ?? 'Signed in'}
+            </span>
+            {user?.email && (
+              <span className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </span>
+            )}
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
+          <LogOutIcon />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
 function AppLayout() {
-  const user = useAuthStore((state) => state.user)
-
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
@@ -31,7 +77,7 @@ function AppLayout() {
               ApproX
             </span>
           </Link>
-          <UserAvatar username={user?.username} />
+          <UserMenu />
         </div>
       </header>
       <main className="flex flex-1 flex-col">
