@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Eye, EyeOff, Lock } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 import { login as loginRequest } from '@/features/auth/api'
-import { useAuthStore } from '@/features/auth/store'
+import { authKey, verifyQueryOptions } from '@/features/auth/queries'
 
 function LoginPage() {
   const [email, setEmail] = useState('')
@@ -23,11 +23,14 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   const navigate = useNavigate()
-  const setSession = useAuthStore((state) => state.setSession)
+  const queryClient = useQueryClient()
   const login = useMutation({
     mutationFn: loginRequest,
     onSuccess: (data) => {
-      setSession(data)
+      queryClient.setQueryData(authKey, {
+        email: data.email,
+        username: data.username,
+      })
       navigate({ to: '/upload' })
     },
   })
@@ -122,8 +125,13 @@ function LoginPage() {
 }
 
 export const Route = createFileRoute('/_auth/login')({
-  beforeLoad: () => {
-    if (useAuthStore.getState().isAuthenticated) {
+  beforeLoad: async ({ context }) => {
+    const isAuthenticated = await context.queryClient
+      .ensureQueryData(verifyQueryOptions)
+      .then(() => true)
+      .catch(() => false)
+
+    if (isAuthenticated) {
       throw redirect({ to: '/upload' })
     }
   },

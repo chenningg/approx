@@ -1,6 +1,12 @@
-import { Link, Outlet, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { BoxesIcon, LogOutIcon } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
+import { BoxesIcon, LogOutIcon } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -9,21 +15,27 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useAuthStore } from '@/features/auth/store'
+} from "@/components/ui/dropdown-menu";
+import { logout as logoutRequest } from "@/features/auth/api";
+import { authKey, verifyQueryOptions } from "@/features/auth/queries";
 
 function initials(username?: string) {
-  return username ? username.slice(0, 2).toUpperCase() : '??'
+  return username ? username.slice(0, 2).toUpperCase() : "??";
 }
 
 function UserMenu() {
-  const navigate = useNavigate()
-  const user = useAuthStore((state) => state.user)
-  const clear = useAuthStore((state) => state.clear)
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: user } = useQuery(verifyQueryOptions);
 
-  function handleLogout() {
-    clear()
-    navigate({ to: '/login' })
+  async function handleLogout() {
+    try {
+      await logoutRequest();
+    } catch {
+      // Clear the local session even if the request fails.
+    }
+    queryClient.removeQueries({ queryKey: authKey });
+    navigate({ to: "/login" });
   }
 
   return (
@@ -37,15 +49,11 @@ function UserMenu() {
           {initials(user?.username)}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        sideOffset={8}
-        className="w-56"
-      >
+      <DropdownMenuContent align="end" sideOffset={8} className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col">
             <span className="truncate text-sm font-medium text-foreground">
-              {user?.username ?? 'Signed in'}
+              {user?.username ?? "Signed in"}
             </span>
             {user?.email && (
               <span className="truncate text-xs text-muted-foreground">
@@ -55,13 +63,13 @@ function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={handleLogout} className="hover:cursor-pointer">
+        <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
           <LogOutIcon />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
 function AppLayout() {
@@ -84,14 +92,17 @@ function AppLayout() {
         <Outlet />
       </main>
     </div>
-  )
+  );
 }
 
-export const Route = createFileRoute('/_app')({
-  beforeLoad: () => {
-    if (!useAuthStore.getState().isAuthenticated) {
-      throw redirect({ to: '/login' })
+export const Route = createFileRoute("/_app")({
+  beforeLoad: async ({ context }) => {
+    try {
+      await context.queryClient.query(verifyQueryOptions);
+    } catch {
+      context.queryClient.removeQueries({ queryKey: authKey });
+      throw redirect({ to: "/login" });
     }
   },
   component: AppLayout,
-})
+});

@@ -11,6 +11,11 @@ export interface LoginResponse {
   username: string
 }
 
+export interface VerifyResponse {
+  email: string
+  username: string
+}
+
 export async function login(body: LoginRequest): Promise<LoginResponse> {
   const response = await fetch(`${config.apiBaseUrl}/auth/login`, {
     method: 'POST',
@@ -27,4 +32,28 @@ export async function login(body: LoginRequest): Promise<LoginResponse> {
   }
 
   return (await response.json()) as LoginResponse
+}
+
+export async function verify(): Promise<VerifyResponse> {
+  const response = await fetch(`${config.apiBaseUrl}/auth/verify`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Verification failed with status ${response.status}`)
+  }
+
+  return (await response.json()) as VerifyResponse
+}
+
+export async function logout(): Promise<void> {
+  const response = await fetch(`${config.apiBaseUrl}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Logout failed with status ${response.status}`)
+  }
 }
