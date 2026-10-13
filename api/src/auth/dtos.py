@@ -11,6 +11,7 @@ class LoginResponse(BaseModel):
     email: EmailStr
     username: str
 
+
 class VerifyResponse(BaseModel):
     email: EmailStr
     username: str

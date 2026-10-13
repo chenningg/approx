@@ -11,6 +11,7 @@ from src.config import config
 from src.db import DbSessionDep
 from src.redis import RedisDep
 
+from src.auth.deps import AuthUserDep
 from src.auth.dtos import LoginRequest, LoginResponse, VerifyResponse
 from src.auth.models import AuthUser
 from src.auth.utils import verify_password
@@ -75,30 +76,8 @@ async def login(
 
 
 @auth_router.post("/verify")
-async def verify(redis: RedisDep, approx_sid: Annotated[str | None, Cookie()] = None):
-    # Always returns true if auth is disabled
-    if not config.auth_enabled:
-        return VerifyResponse(
-            email="auth_disabled@htx.gov.sg", username="auth_disabled"
-        )
-
-    if not approx_sid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid, missing or expired session",
-        )
-
-    # Otherwise we check the cache for the session details
-    key = f"auth:{approx_sid}"
-    session = redis.get(key)
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid, missing or expired session",
-        )
-
-    session = VerifyResponse.model_validate_json(session)
-    return session
+async def verify(auth_user: AuthUserDep) -> VerifyResponse:
+    return auth_user
 
 
 @auth_router.post("/logout")

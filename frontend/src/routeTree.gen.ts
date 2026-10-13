@@ -15,6 +15,7 @@ import { Route as MarketingRouteRouteImport } from './routes/_marketing/route'
 import { Route as AppUploadRouteImport } from './routes/_app/upload'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
+import { Route as AppDatasetsDatasetIdRouteImport } from './routes/_app/datasets/$datasetId'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -43,16 +44,23 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MarketingRouteRoute,
 } as any)
+const AppDatasetsDatasetIdRoute = AppDatasetsDatasetIdRouteImport.update({
+  id: '/datasets/$datasetId',
+  path: '/datasets/$datasetId',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
   '/upload': typeof AppUploadRoute
   '/login': typeof AuthLoginRoute
+  '/datasets/$datasetId': typeof AppDatasetsDatasetIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
   '/upload': typeof AppUploadRoute
   '/login': typeof AuthLoginRoute
+  '/datasets/$datasetId': typeof AppDatasetsDatasetIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +70,13 @@ export interface FileRoutesById {
   '/_app/upload': typeof AppUploadRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_marketing/': typeof MarketingIndexRoute
+  '/_app/datasets/$datasetId': typeof AppDatasetsDatasetIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/upload' | '/login'
+  fullPaths: '/' | '/upload' | '/login' | '/datasets/$datasetId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/upload' | '/login'
+  to: '/' | '/upload' | '/login' | '/datasets/$datasetId'
   id:
     | '__root__'
     | '/_app'
@@ -76,6 +85,7 @@ export interface FileRouteTypes {
     | '/_app/upload'
     | '/_auth/login'
     | '/_marketing/'
+    | '/_app/datasets/$datasetId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,15 +138,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingIndexRouteImport
       parentRoute: typeof MarketingRouteRoute
     }
+    '/_app/datasets/$datasetId': {
+      id: '/_app/datasets/$datasetId'
+      path: '/datasets/$datasetId'
+      fullPath: '/datasets/$datasetId'
+      preLoaderRoute: typeof AppDatasetsDatasetIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
   }
 }
 
 interface AppRouteRouteChildren {
   AppUploadRoute: typeof AppUploadRoute
+  AppDatasetsDatasetIdRoute: typeof AppDatasetsDatasetIdRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppUploadRoute: AppUploadRoute,
+  AppDatasetsDatasetIdRoute: AppDatasetsDatasetIdRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

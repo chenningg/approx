@@ -15,6 +15,7 @@ class Config(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+    data_dir: str = "data"
     db_url: str = "postgresql+asyncpg://approx:approx@localhost:5432/approx"
     redis_url: str = "redis://localhost:6379/0"
 
