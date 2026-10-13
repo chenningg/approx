@@ -77,7 +77,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
 
   if (dataset.isPending) {
     return (
-      <div className="flex h-[calc(100svh-4rem)] flex-col gap-4 p-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 p-6">
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-full w-full" />
       </div>
@@ -86,7 +86,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
 
   if (dataset.isError) {
     return (
-      <div className="flex h-[calc(100svh-4rem)] flex-col items-center justify-center gap-2 p-6 text-center">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
         <p className="font-medium">Could not load this dataset</p>
         <p className="text-sm text-muted-foreground">
           {dataset.error instanceof Error
@@ -100,7 +100,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
   const { filename, sheet } = dataset.data
 
   return (
-    <div className="flex h-[calc(100svh-4rem)] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{filename}</p>

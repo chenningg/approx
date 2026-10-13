@@ -74,7 +74,7 @@ function UserMenu() {
 
 function AppLayout() {
   return (
-    <div className="flex min-h-svh flex-col">
+    <div className="flex h-svh flex-col">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6">
           <Link to="/upload" className="flex items-center gap-2">
@@ -88,7 +88,7 @@ function AppLayout() {
           <UserMenu />
         </div>
       </header>
-      <main className="flex flex-1 flex-col">
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <Outlet />
       </main>
     </div>
