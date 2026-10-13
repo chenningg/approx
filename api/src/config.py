@@ -7,17 +7,16 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    auth_session_cookie_name: str = "approx_sid"
+    auth_session_ttl_seconds: int = 7 * 24 * 60 * 60  # 7 days
+    auth_enabled: bool = False
     # Need to add NoDecode to prevent Pydantic from auto parsing as JSON
     cors_origins: Annotated[list[str], NoDecode] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
-
     db_url: str = "postgresql+asyncpg://approx:approx@localhost:5432/approx"
     redis_url: str = "redis://localhost:6379/0"
-
-    auth_session_cookie_name: str = "approx_sid"
-    auth_session_ttl_seconds: int = 7 * 24 * 60 * 60  # 7 days
 
     # Read in lists of strings
     @field_validator("cors_origins", mode="before")

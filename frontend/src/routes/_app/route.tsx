@@ -55,7 +55,7 @@ function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
+        <DropdownMenuItem variant="destructive" onSelect={handleLogout} className="hover:cursor-pointer">
           <LogOutIcon />
           Log out
         </DropdownMenuItem>

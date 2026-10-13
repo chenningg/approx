@@ -10,3 +10,7 @@ class LoginResponse(BaseModel):
     session_id: str
     email: EmailStr
     username: str
+
+class VerifyResponse(BaseModel):
+    email: EmailStr
+    username: str
