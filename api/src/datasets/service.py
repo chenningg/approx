@@ -141,7 +141,7 @@ def create_dataset(
 
     columns: list[dict[str, Any]] = []
     for index in range(column_count):
-        detected_type, confidence, sample_values = detect_column(
+        detected_type, sensitivity, confidence, sample_values = detect_column(
             headers[index], samples[index]
         )
         columns.append(
@@ -149,6 +149,7 @@ def create_dataset(
                 "index": index,
                 "header": headers[index],
                 "detected_type": detected_type,
+                "sensitivity": sensitivity,
                 "confidence": confidence,
                 "sample_values": sample_values,
             }

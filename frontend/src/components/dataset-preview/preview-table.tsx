@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 
 import { ColumnActionSelect } from './column-action-select'
 import { DetectedTypeBadge } from './detected-type-badge'
+import { SensitivityBadge } from './sensitivity-badge'
 import type { ColumnAction, ColumnInfo } from '@/features/datasets/types'
 import { cn } from '@/lib/utils'
 
@@ -93,6 +94,7 @@ export function PreviewTable({
                   type={column.detected_type}
                   confidence={column.confidence}
                 />
+                <SensitivityBadge sensitivity={column.sensitivity} />
                 <ColumnActionSelect
                   value={actionFor(column)}
                   onChange={(action) => onActionChange(column.index, action)}

@@ -48,7 +48,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
 
   const actionFor = useCallback(
     (column: ColumnInfo) =>
-      actions[column.index] ?? defaultActionFor(column.detected_type),
+      actions[column.index] ?? defaultActionFor(column.sensitivity),
     [actions],
   );
 
@@ -70,7 +70,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
     () =>
       columns.filter(
         (column) =>
-          (actions[column.index] ?? defaultActionFor(column.detected_type)) ===
+          (actions[column.index] ?? defaultActionFor(column.sensitivity)) ===
           "remove",
       ).length,
     [columns, actions],
