@@ -2,7 +2,7 @@ import json
 import secrets
 
 
-from fastapi import APIRouter, HTTPException, Response, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import select
 from typing import Annotated
 from fastapi import Cookie
@@ -104,7 +104,7 @@ async def logout(
 
     # Otherwise log the user out
     key = f"auth:{approx_sid}"
-    redis.delete(key)
+    await redis.delete(key)
     response.delete_cookie(
         key=config.auth_session_cookie_name,
         httponly=True,

@@ -4,7 +4,7 @@ from uuid import UUID, uuid7
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 
-from src.auth.deps import CurrentUser
+from src.auth.deps import AuthUserDep
 from src.datasets import service
 from src.datasets.dtos import DatasetPreview, RowsPage
 from src.datasets.service import DatasetNotFoundError
@@ -16,7 +16,7 @@ ALLOWED_SUFFIXES = {".xlsx"}
 
 @datasets_router.post("", response_model=DatasetPreview)
 async def upload_dataset(
-    user: CurrentUser, file: UploadFile = File(...)
+    auth_user: AuthUserDep, file: UploadFile = File(...)
 ) -> DatasetPreview:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
@@ -52,7 +52,7 @@ async def upload_dataset(
 
 @datasets_router.get("/{dataset_id}", response_model=DatasetPreview)
 async def get_dataset(
-    dataset_id: UUID, user: CurrentUser
+    dataset_id: UUID, auth_user: AuthUserDep
 ) -> DatasetPreview:
     try:
         result = await run_in_threadpool(service.get_dataset, dataset_id)
@@ -66,7 +66,7 @@ async def get_dataset(
 @datasets_router.get("/{dataset_id}/rows", response_model=RowsPage)
 async def get_dataset_rows(
     dataset_id: UUID,
-    user: CurrentUser,
+    auth_user: AuthUserDep,
     offset: int = Query(0, ge=0),
     limit: int = Query(200, ge=1, le=1000),
 ) -> RowsPage:

@@ -7,7 +7,7 @@ from src.config import config
 from src.redis import RedisDep
 
 
-async def get_current_user(
+async def get_auth_user(
     redis: RedisDep,
     approx_sid: Annotated[str | None, Cookie()] = None,
 ) -> VerifyResponse:
@@ -36,4 +36,4 @@ async def get_current_user(
     return VerifyResponse.model_validate_json(session)
 
 
-CurrentUser = Annotated[VerifyResponse, Depends(get_current_user)]
+AuthUserDep = Annotated[VerifyResponse, Depends(get_auth_user)]
