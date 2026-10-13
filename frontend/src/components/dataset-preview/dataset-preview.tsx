@@ -1,25 +1,25 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useCallback, useMemo, useState } from 'react'
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 
-import { PreviewTable } from './preview-table'
-import { Skeleton } from '@/components/ui/skeleton'
+import { PreviewTable } from "./preview-table";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   datasetQueryOptions,
   datasetRowsQueryOptions,
-} from '@/features/datasets/queries'
+} from "@/features/datasets/queries";
 import {
   defaultActionFor,
   type ColumnAction,
   type ColumnInfo,
-} from '@/features/datasets/types'
+} from "@/features/datasets/types";
 
 interface DatasetPreviewProps {
-  id: string
+  id: string;
 }
 
 export function DatasetPreview({ id }: DatasetPreviewProps) {
-  const dataset = useQuery(datasetQueryOptions(id))
-  const [actions, setActions] = useState<Record<number, ColumnAction>>({})
+  const dataset = useQuery(datasetQueryOptions(id));
+  const [actions, setActions] = useState<Record<number, ColumnAction>>({});
 
   const rowsQuery = useInfiniteQuery({
     ...datasetRowsQueryOptions(id),
@@ -36,44 +36,45 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
           pageParams: [0],
         }
       : undefined,
-  })
+  });
 
-  const columns = useMemo(() => dataset.data?.columns ?? [], [dataset.data])
+  const columns = useMemo(() => dataset.data?.columns ?? [], [dataset.data]);
   const rows = useMemo(
     () => rowsQuery.data?.pages.flatMap((page) => page.rows) ?? [],
     [rowsQuery.data],
-  )
-  const total = dataset.data?.total_rows ?? rowsQuery.data?.pages[0]?.total ?? 0
+  );
+  const total =
+    dataset.data?.total_rows ?? rowsQuery.data?.pages[0]?.total ?? 0;
 
   const actionFor = useCallback(
     (column: ColumnInfo) =>
       actions[column.index] ?? defaultActionFor(column.detected_type),
     [actions],
-  )
+  );
 
   const handleActionChange = useCallback(
     (index: number, action: ColumnAction) => {
-      setActions((prev) => ({ ...prev, [index]: action }))
+      setActions((prev) => ({ ...prev, [index]: action }));
     },
     [],
-  )
+  );
 
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = rowsQuery
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = rowsQuery;
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      void fetchNextPage()
+      void fetchNextPage();
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const removedCount = useMemo(
     () =>
       columns.filter(
         (column) =>
           (actions[column.index] ?? defaultActionFor(column.detected_type)) ===
-          'remove',
+          "remove",
       ).length,
     [columns, actions],
-  )
+  );
 
   if (dataset.isPending) {
     return (
@@ -81,7 +82,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-full w-full" />
       </div>
-    )
+    );
   }
 
   if (dataset.isError) {
@@ -91,13 +92,13 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
         <p className="text-sm text-muted-foreground">
           {dataset.error instanceof Error
             ? dataset.error.message
-            : 'Something went wrong.'}
+            : "Something went wrong."}
         </p>
       </div>
-    )
+    );
   }
 
-  const { filename, sheet } = dataset.data
+  const { filename, sheet } = dataset.data;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -105,8 +106,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{filename}</p>
           <p className="text-xs text-muted-foreground">
-            {total.toLocaleString()} rows · {columns.length} columns · sheet “
-            {sheet}”
+            {sheet} · {total.toLocaleString()} rows · {columns.length} columns
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -127,5 +127,5 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
         onLoadMore={handleLoadMore}
       />
     </div>
-  )
+  );
 }

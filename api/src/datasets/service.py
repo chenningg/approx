@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterator
@@ -16,12 +17,42 @@ from src.datasets.detection import detect_column
 PREVIEW_ROWS = 100
 DETECTION_SAMPLE_CAP = 5000
 
+_CURRENCY_SYMBOLS = ("$", "€", "£", "¥", "¤")
+_NUMBER_CHARS_RE = re.compile(r"[0#]")
+_DECIMAL_PLACES_RE = re.compile(r"\.(0+)")
+
+
+def _format_number(value: float, number_format: str) -> str:
+    """Render a numeric cell according to a small subset of Excel formats."""
+    if not _NUMBER_CHARS_RE.search(number_format):
+        return str(int(value)) if value.is_integer() else repr(value)
+
+    symbol = ""
+    for candidate in _CURRENCY_SYMBOLS:
+        if candidate in number_format:
+            symbol = candidate
+            break
+
+    is_percent = "%" in number_format
+    has_thousands = "," in number_format
+
+    digits_match = _DECIMAL_PLACES_RE.search(number_format)
+    decimals = len(digits_match.group(1)) if digits_match else 0
+
+    body_format = f",.{decimals}f" if has_thousands else f".{decimals}f"
+
+    if is_percent:
+        value *= 100
+        return f"{value:{body_format}}%"
+
+    return f"{symbol}{value:{body_format}}"
+
 
 class DatasetNotFoundError(Exception):
     pass
 
 
-def _normalize_cell(value: Any) -> str | None:
+def _normalize_cell(value: Any, number_format: str = "General") -> str | None:
     if value is None:
         return None
     if isinstance(value, datetime):
@@ -30,12 +61,8 @@ def _normalize_cell(value: Any) -> str | None:
         return value.isoformat()
     if isinstance(value, bool):
         return "TRUE" if value else "FALSE"
-    if isinstance(value, float):
-        if value.is_integer():
-            return str(int(value))
-        return repr(value)
-    if isinstance(value, int):
-        return str(value)
+    if isinstance(value, (int, float)):
+        return _format_number(float(value), number_format)
     text = str(value).strip()
     return text or None
 
@@ -51,8 +78,8 @@ def _open_sheet_rows(
     worksheet = workbook[names[0]]
 
     def gen() -> Iterator[list[Any]]:
-        for row in worksheet.iter_rows(values_only=True):
-            yield list(row)
+        for row in worksheet.iter_rows():
+            yield [(cell.value, str(cell.number_format)) for cell in row]
 
     return names, names[0], gen()
 
@@ -78,11 +105,11 @@ def create_dataset(
         header_row = []
 
     headers: list[str | None] = []
-    for cell in header_row:
-        if cell is None:
+    for raw, _format in header_row:
+        if raw is None:
             headers.append(None)
         else:
-            text = str(cell).strip()
+            text = str(raw).strip()
             headers.append(text or None)
 
     column_count = len(headers)
@@ -94,7 +121,9 @@ def create_dataset(
     with rows_file.open("w", encoding="utf-8") as handle:
         for raw_row in iterator:
             row = [
-                _normalize_cell(raw_row[index]) if index < len(raw_row) else None
+                _normalize_cell(*raw_row[index])
+                if index < len(raw_row)
+                else None
                 for index in range(column_count)
             ]
             total_rows += 1
