@@ -80,37 +80,63 @@ function UploadPage() {
       </div>
 
       <div className="space-y-4">
-        <label
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-          className={cn(
-            "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center transition-colors",
-            isDragging
-              ? "border-primary bg-primary/5"
-              : "border-border/60 hover:border-primary/50 hover:bg-muted/40",
-          )}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".xlsx"
-            className="sr-only"
-            onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
-          />
-          <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <UploadCloudIcon className="size-6" />
+        {!file && (
+          <label
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            className={cn(
+              "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center transition-colors",
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-border/60 hover:border-primary/50 hover:bg-muted/40",
+            )}
+          >
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".xlsx"
+              className="sr-only"
+              onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
+            />
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <UploadCloudIcon className="size-6" />
+            </div>
+            <div>
+              <p className="font-medium">Click to upload or drag and drop</p>
+              <p className="text-sm text-muted-foreground">
+                Excel workbook (.xlsx), up to 50 MB
+              </p>
+            </div>
+          </label>
+        )}
+
+        {file && (
+          <div className="flex items-center gap-4 rounded-xl border border-border/60 bg-card p-6">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+              <FileSpreadsheetIcon className="size-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{file.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {formatSize(file.size)}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Cancel file"
+              disabled={upload.isPending}
+              onClick={clearFile}
+            >
+              <XIcon className="size-4" />
+            </Button>
           </div>
-          <div>
-            <p className="font-medium">Click to upload or drag and drop</p>
-            <p className="text-sm text-muted-foreground">
-              Excel workbook (.xlsx), up to 50 MB
-            </p>
-          </div>
-        </label>
+        )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
