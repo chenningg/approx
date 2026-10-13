@@ -1,19 +1,34 @@
-"""Heuristic PII detection for dataset columns.
+"""Heuristic column type and sensitivity detection for dataset columns.
 
 Detection blends header-name hints with value-shape heuristics evaluated over a
-capped sample of non-empty values. It returns the most likely type along with a
-confidence score, falling back to ``UNKNOWN`` when nothing stands out.
+capped sample of non-empty values. Every column is classified along two axes:
+
+* ``type``        - what the data structurally looks like (NRIC, PHONE, ...).
+* ``sensitivity`` - how it should be handled (PII, INDIRECT_PII, SENSITIVE, UNKNOWN).
+
+Gated types (PASSPORT, DRIVING_LICENSE, bare-valued PHONE) additionally require
+a matching header hint on top of the value shape to avoid false positives on
+generic codes. Values arrive as the normalized strings produced by the service.
 """
 
 from __future__ import annotations
 
 import re
+from collections import Counter
 from datetime import datetime
 
 DetectedType = str
+Sensitivity = str
 
 NRIC_RE = re.compile(r"^[STFGM]\d{7}[A-Z]$")
 CARD_RE = re.compile(r"^\d{13,19}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+URL_RE = re.compile(r"^(?:https?://|www\.)", re.IGNORECASE)
+IPV4_RE = re.compile(r"^\d{1,3}(?:\.\d{1,3}){3}$")
+IPV6_RE = re.compile(r"^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$")
+PASSPORT_RE = re.compile(r"^[A-Z]\d{7}$")
+DRIVING_LICENSE_RE = re.compile(r"^[A-Z]{1,2}\d{7,10}$")
+_PHONE_SEPARATOR_RE = re.compile(r"[\s().+-]")
 
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -50,14 +65,17 @@ GENDER_VALUES = {
 }
 
 ADDRESS_RE = re.compile(
-    r"\b(blk|block|street|st|road|rd|avenue|ave|lane|drive|crescent|close|walk"
-    r"|place|terrace|floor|unit|singapore|sector|district)\b|#|\b\d{6}\b",
+    r"\b(blk|block|street|st|road|rd|avenue|ave|lane|drive|crescent|close|walk|"
+    r"place|terrace|floor|unit|boulevard|blvd|way|singapore|sector|district)\b|"
+    r"#|\b\d{6}\b",
     re.IGNORECASE,
 )
 
 # Specific types first. ``name`` is intentionally last since it is the broadest.
+# ``DOB`` must precede ``DATE`` so birth-flavoured headers win over the general term.
 HEADER_HINTS: tuple[tuple[tuple[str, ...], DetectedType], ...] = (
     (("nric", "fin", "identitycard", "nationalid", "icnumber"), "NRIC"),
+    (("passport", "traveldocument"), "PASSPORT"),
     (
         (
             "cardnumber",
@@ -71,7 +89,29 @@ HEADER_HINTS: tuple[tuple[tuple[str, ...], DetectedType], ...] = (
         ),
         "CARD",
     ),
+    (
+        (
+            "drivinglicense",
+            "drivinglicence",
+            "licenseno",
+            "licenceno",
+            "license",
+            "licence",
+        ),
+        "DRIVING_LICENSE",
+    ),
+    (
+        ("phone", "mobile", "handphone", "telephone", "cellphone", "tel", "whatsapp", "contact"),
+        "PHONE",
+    ),
+    (("email", "mail"), "EMAIL"),
+    (("url", "website", "web", "link", "domain"), "URL"),
+    (("ipaddress", "ipaddr"), "IP_ADDRESS"),
     (("dob", "dateofbirth", "birthdate", "birthday"), "DOB"),
+    (
+        ("date", "timestamp", "created", "updated", "joined", "hire", "transact"),
+        "DATE",
+    ),
     (("gender", "sex"), "GENDER"),
     (
         (
@@ -88,16 +128,7 @@ HEADER_HINTS: tuple[tuple[tuple[str, ...], DetectedType], ...] = (
         ),
         "ADDRESS",
     ),
-    (("name",), "NAME"),
-)
-
-CHECK_ORDER: tuple[tuple[DetectedType, str], ...] = (
-    ("NRIC", "_is_nric"),
-    ("CARD", "_is_card"),
-    ("DOB", "_is_date"),
-    ("GENDER", "_is_gender"),
-    ("ADDRESS", "_is_address"),
-    ("NAME", "_is_name"),
+    (("name", "fullname"), "NAME"),
 )
 
 
@@ -132,6 +163,40 @@ def _luhn(digits: str) -> bool:
 def _is_card(value: str) -> bool:
     digits = re.sub(r"[\s-]", "", value)
     return bool(CARD_RE.match(digits)) and _luhn(digits)
+
+
+def _is_phone(value: str, allow_bare: bool = False) -> bool:
+    candidate = value.strip()
+    if not candidate or re.search(r"[A-Za-z]", candidate):
+        return False
+    if not allow_bare and not _PHONE_SEPARATOR_RE.search(candidate):
+        return False
+    digits = re.sub(r"\D", "", candidate)
+    return 7 <= len(digits) <= 15
+
+
+def _is_email(value: str) -> bool:
+    return bool(EMAIL_RE.match(value.strip()))
+
+
+def _is_url(value: str) -> bool:
+    candidate = value.strip()
+    return bool(URL_RE.match(candidate)) and " " not in candidate
+
+
+def _is_ip(value: str) -> bool:
+    candidate = value.strip()
+    if IPV4_RE.match(candidate):
+        return all(0 <= int(octet) <= 255 for octet in candidate.split("."))
+    return bool(IPV6_RE.match(candidate))
+
+
+def _is_passport(value: str) -> bool:
+    return bool(PASSPORT_RE.match(value.upper().replace(" ", "")))
+
+
+def _is_driving_license(value: str) -> bool:
+    return bool(DRIVING_LICENSE_RE.match(value.upper().replace(" ", "")))
 
 
 def _is_date(value: str) -> bool:
@@ -169,47 +234,220 @@ def _is_name(value: str) -> bool:
     return capitalized >= max(1, len(tokens) - 1)
 
 
-_VALUE_CHECKS = {
-    "NRIC": _is_nric,
-    "CARD": _is_card,
-    "DOB": _is_date,
-    "GENDER": _is_gender,
-    "ADDRESS": _is_address,
-    "NAME": _is_name,
-}
+# Order matters: more specific shapes run first so broad checks can't win.
+# ``DOB``/``DATE`` precede ``PHONE`` because date-shaped values (1990-01-02)
+# also look like dashed phone numbers. ``NAME`` stays last since it is the
+# broadest, and is additionally gated on cardinality (below).
+_VALUE_CHECKS: tuple[
+    tuple[DetectedType, str], ...
+] = (
+    ("NRIC", "_is_nric"),
+    ("CARD", "_is_card"),
+    ("DOB", "_is_date"),
+    ("DATE", "_is_date"),
+    ("PHONE", "_is_phone"),
+    ("EMAIL", "_is_email"),
+    ("URL", "_is_url"),
+    ("IP_ADDRESS", "_is_ip"),
+    ("GENDER", "_is_gender"),
+    ("ADDRESS", "_is_address"),
+    ("PASSPORT", "_is_passport"),
+    ("DRIVING_LICENSE", "_is_driving_license"),
+    ("NAME", "_is_name"),
+)
+
+# Types whose value checkers are only meaningful with a matching header hint.
+_HINT_GATED = {"PASSPORT", "DRIVING_LICENSE"}
+
+# Without a name-flavoured header, only treat a column as NAME once it has
+# enough distinct values that it can't just be a low-cardinality category.
+_NAME_MIN_UNIQUE = 12
 
 _VALUE_THRESHOLD = 0.8
 
 
-def _ratio(values: list[str], predicate) -> float:
-    if not values:
-        return 0.0
-    return sum(1 for value in values if predicate(value)) / len(values)
+# ---------------------------------------------------------------------------
+# Sensitivity
+# ---------------------------------------------------------------------------
+
+_TYPE_SENSITIVITY: dict[DetectedType, Sensitivity] = {
+    "NRIC": "PII",
+    "PASSPORT": "PII",
+    "DRIVING_LICENSE": "PII",
+    "NAME": "PII",
+    "PHONE": "PII",
+    "EMAIL": "PII",
+    "URL": "PII",
+    "ADDRESS": "PII",
+    "IP_ADDRESS": "PII",
+    "CARD": "SENSITIVE",
+    "DOB": "INDIRECT_PII",
+    "DATE": "INDIRECT_PII",
+    "GENDER": "INDIRECT_PII",
+    "UNKNOWN": "UNKNOWN",
+}
+
+_SENSITIVE_HEADERS = (
+    "salary",
+    "compensation",
+    "income",
+    "wage",
+    "bonus",
+    "allowance",
+    "stipend",
+    "payroll",
+    "payout",
+    "medical",
+    "health",
+    "diagnosis",
+    "treatment",
+    "medication",
+    "patient",
+    "religion",
+    "religious",
+    "ethnicity",
+    "ethnic",
+    "race",
+    "racial",
+    "biometric",
+    "blood",
+    "criminal",
+    "bank",
+    "account",
+    "credit",
+    "financial",
+)
+
+_PII_HEADERS = (
+    "passport",
+    "nric",
+    "fin",
+    "nationalid",
+    "icnumber",
+    "tax",
+    "tin",
+    "socialsecurity",
+    "license",
+)
+
+_INDIRECT_HEADERS = (
+    "postal",
+    "postcode",
+    "zip",
+    "city",
+    "town",
+    "country",
+    "nationality",
+    "age",
+    "birthdate",
+    "birthday",
+    "dob",
+    "marital",
+    "occupation",
+)
+
+
+def _contains_any(header: str | None, terms: tuple[str, ...]) -> bool:
+    if not header:
+        return False
+    normalized = re.sub(r"[^a-z0-9]", "", str(header).lower())
+    return any(term in normalized for term in terms)
+
+
+def classify_sensitivity(header: str | None, detected_type: DetectedType) -> Sensitivity:
+    if _contains_any(header, _SENSITIVE_HEADERS):
+        return "SENSITIVE"
+    if _contains_any(header, _PII_HEADERS):
+        return "PII"
+    if _contains_any(header, _INDIRECT_HEADERS):
+        return "INDIRECT_PII"
+    return _TYPE_SENSITIVITY.get(detected_type, "UNKNOWN")
+
+
+# ---------------------------------------------------------------------------
+# Column detection
+# ---------------------------------------------------------------------------
 
 
 def detect_column(
     header: str | None, values: list[str]
-) -> tuple[DetectedType, float, list[str]]:
+) -> tuple[DetectedType, Sensitivity, float, list[str]]:
+    """Return (type, sensitivity, confidence, unique_samples) for a column."""
     hint = header_hint(header)
     samples = [value for value in values if value]
-    unique_samples = list(dict.fromkeys(samples))[:3]
+    unique_values = list(dict.fromkeys(samples))
+    unique_samples = unique_values[:3]
 
     if not samples:
-        return (hint or "UNKNOWN", 0.5 if hint else 0.0, unique_samples)
+        detected_type = hint or "UNKNOWN"
+        confidence = 0.5 if hint else 0.0
+        return (
+            detected_type,
+            classify_sensitivity(header, detected_type),
+            round(confidence, 2),
+            unique_samples,
+        )
 
+    checkers = [
+        (detected_type, checker_name)
+        for detected_type, checker_name in _VALUE_CHECKS
+        if not (
+            detected_type in _HINT_GATED and detected_type != hint
+        )
+        and not (
+            detected_type == "NAME"
+            and hint != "NAME"
+            and len(unique_values) < _NAME_MIN_UNIQUE
+        )
+    ]
+
+    counters = Counter()
+    for value in samples:
+        for detected_type, checker_name in checkers:
+            if detected_type == "PHONE":
+                matched = _is_phone(value, allow_bare=hint == "PHONE")
+            else:
+                matched = bool(globals()[checker_name](value))
+            if matched:
+                counters[detected_type] += 1
+
+    total = len(samples)
     ratios = {
-        detected_type: _ratio(samples, _VALUE_CHECKS[detected_type])
-        for detected_type, _ in CHECK_ORDER
+        detected_type: counters[detected_type] / total
+        for detected_type, _ in checkers
+        if detected_type in counters or detected_type == hint
     }
-    best_type = max(CHECK_ORDER, key=lambda item: ratios[item[0]])[0]
+    if not ratios:
+        ratios["UNKNOWN"] = 0.0
+
+    best_type = max(ratios, key=ratios.get)
     best_ratio = ratios[best_type]
+
+    # DOB and DATE share a value checker; the header decides which one.
+    if best_type in ("DOB", "DATE"):
+        best_type = hint if hint in ("DOB", "DATE") else "DATE"
 
     if best_ratio >= _VALUE_THRESHOLD:
         confidence = min(0.99, 0.6 + best_ratio * 0.4)
-        return best_type, round(confidence, 2), unique_samples
+        return (
+            best_type,
+            classify_sensitivity(header, best_type),
+            round(confidence, 2),
+            unique_samples,
+        )
 
     if hint:
         confidence = min(0.85, 0.5 + ratios.get(hint, 0.0) * 0.4)
-        return hint, round(confidence, 2), unique_samples
+        return (
+            hint,
+            classify_sensitivity(header, hint),
+            round(confidence, 2),
+            unique_samples,
+        )
 
-    return "UNKNOWN", round(best_ratio, 2), unique_samples
+    return (
+        "UNKNOWN",
+        classify_sensitivity(header, "UNKNOWN"),
+        round(best_ratio, 2),
+        unique_samples,
+    )

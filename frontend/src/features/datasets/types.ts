@@ -1,16 +1,30 @@
 export type DetectedType =
   | 'NRIC'
+  | 'PASSPORT'
+  | 'DRIVING_LICENSE'
   | 'CARD'
+  | 'PHONE'
+  | 'EMAIL'
+  | 'URL'
+  | 'IP_ADDRESS'
   | 'DOB'
+  | 'DATE'
   | 'GENDER'
   | 'ADDRESS'
   | 'NAME'
+  | 'UNKNOWN'
+
+export type Sensitivity =
+  | 'PII'
+  | 'INDIRECT_PII'
+  | 'SENSITIVE'
   | 'UNKNOWN'
 
 export interface ColumnInfo {
   index: number
   header: string | null
   detected_type: DetectedType
+  sensitivity: Sensitivity
   confidence: number
   sample_values: string[]
 }
@@ -48,16 +62,13 @@ export const COLUMN_ACTIONS: { value: ColumnAction; label: string }[] = [
   { value: 'synthetic', label: 'Synthetic' },
 ]
 
-const DEFAULT_ACTIONS: Record<DetectedType, ColumnAction> = {
-  NRIC: 'redact',
-  CARD: 'redact',
-  NAME: 'redact',
-  DOB: 'k_anonymity',
-  GENDER: 'k_anonymity',
-  ADDRESS: 'k_anonymity',
+const DEFAULT_ACTIONS: Record<Sensitivity, ColumnAction> = {
+  PII: 'redact',
+  INDIRECT_PII: 'k_anonymity',
+  SENSITIVE: 'redact',
   UNKNOWN: 'keep',
 }
 
-export function defaultActionFor(type: DetectedType): ColumnAction {
-  return DEFAULT_ACTIONS[type] ?? 'keep'
+export function defaultActionFor(sensitivity: Sensitivity): ColumnAction {
+  return DEFAULT_ACTIONS[sensitivity] ?? 'keep'
 }
