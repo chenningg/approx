@@ -112,28 +112,6 @@ function UploadPage() {
           </div>
         </label>
 
-        {file && (
-          <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-card p-3">
-            <FileSpreadsheetIcon className="size-5 shrink-0 text-emerald-400" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{file.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatSize(file.size)}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Remove file"
-              onClick={clearFile}
-              className="cursor-pointer"
-            >
-              <XIcon className="size-4" />
-            </Button>
-          </div>
-        )}
-
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <Button
