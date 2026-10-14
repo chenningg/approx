@@ -14,6 +14,7 @@ DetectedType = Literal[
     "IP_ADDRESS",
     "DOB",
     "DATE",
+    "AGE",
     "GENDER",
     "ADDRESS",
     "NAME",

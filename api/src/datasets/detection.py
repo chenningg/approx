@@ -6,9 +6,10 @@ capped sample of non-empty values. Every column is classified along two axes:
 * ``type``        - what the data structurally looks like (NRIC, PHONE, ...).
 * ``sensitivity`` - how it should be handled (PII, INDIRECT_PII, SENSITIVE, UNKNOWN).
 
-Gated types (PASSPORT, DRIVING_LICENSE, bare-valued PHONE) additionally require
-a matching header hint on top of the value shape to avoid false positives on
-generic codes. Values arrive as the normalized strings produced by the service.
+Gated types (PASSPORT, DRIVING_LICENSE, AGE, bare-valued PHONE) additionally
+require a matching header hint on top of the value shape to avoid false
+positives on generic codes. Values arrive as the normalized strings produced by
+the service.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ IPV6_RE = re.compile(r"^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$")
 PASSPORT_RE = re.compile(r"^[A-Z]\d{7}$")
 DRIVING_LICENSE_RE = re.compile(r"^[A-Z]{1,2}\d{7,10}$")
 _PHONE_SEPARATOR_RE = re.compile(r"[\s().+-]")
+AGE_RE = re.compile(r"^(?:0|[1-9]\d{0,2})$")
 
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -63,6 +65,13 @@ GENDER_VALUES = {
     "notapplicable",
     "prefernottosay",
 }
+
+# Age: header-gated, integer 0.._AGE_MAX. The allow-list catches concatenated
+# header forms; ``_is_age_header`` additionally matches a standalone "age" token.
+_AGE_MAX = 150
+_AGE_HEADERS = frozenset(
+    {"age", "ageyears", "yearsofage", "agegroup", "ageband", "agerange"}
+)
 
 ADDRESS_RE = re.compile(
     r"\b(blk|block|street|st|road|rd|avenue|ave|lane|drive|crescent|close|walk|"
@@ -138,6 +147,8 @@ def header_hint(header: str | None) -> DetectedType | None:
     normalized = re.sub(r"[^a-z0-9]", "", str(header).lower())
     if not normalized:
         return None
+    if _is_age_header(header):
+        return "AGE"
     for keys, detected_type in HEADER_HINTS:
         if any(key in normalized for key in keys):
             return detected_type
@@ -146,6 +157,20 @@ def header_hint(header: str | None) -> DetectedType | None:
 
 def _is_nric(value: str) -> bool:
     return bool(NRIC_RE.match(value.upper().replace(" ", "")))
+
+
+def _is_age_header(header: str | None) -> bool:
+    if not header:
+        return False
+    text = str(header).lower()
+    if re.sub(r"[^a-z0-9]", "", text) in _AGE_HEADERS:
+        return True
+    return "age" in re.split(r"[^a-z0-9]+", text)
+
+
+def _is_age(value: str) -> bool:
+    candidate = value.strip()
+    return bool(AGE_RE.match(candidate)) and int(candidate) <= _AGE_MAX
 
 
 def _luhn(digits: str) -> bool:
@@ -245,6 +270,7 @@ _VALUE_CHECKS: tuple[
     ("CARD", "_is_card"),
     ("DOB", "_is_date"),
     ("DATE", "_is_date"),
+    ("AGE", "_is_age"),
     ("PHONE", "_is_phone"),
     ("EMAIL", "_is_email"),
     ("URL", "_is_url"),
@@ -257,7 +283,7 @@ _VALUE_CHECKS: tuple[
 )
 
 # Types whose value checkers are only meaningful with a matching header hint.
-_HINT_GATED = {"PASSPORT", "DRIVING_LICENSE"}
+_HINT_GATED = {"PASSPORT", "DRIVING_LICENSE", "AGE"}
 
 # Without a name-flavoured header, only treat a column as NAME once it has
 # enough distinct values that it can't just be a low-cardinality category.
@@ -283,6 +309,7 @@ _TYPE_SENSITIVITY: dict[DetectedType, Sensitivity] = {
     "CARD": "SENSITIVE",
     "DOB": "INDIRECT_PII",
     "DATE": "INDIRECT_PII",
+    "AGE": "INDIRECT_PII",
     "GENDER": "INDIRECT_PII",
     "UNKNOWN": "UNKNOWN",
 }
@@ -338,7 +365,6 @@ _INDIRECT_HEADERS = (
     "town",
     "country",
     "nationality",
-    "age",
     "birthdate",
     "birthday",
     "dob",
@@ -359,7 +385,7 @@ def classify_sensitivity(header: str | None, detected_type: DetectedType) -> Sen
         return "SENSITIVE"
     if _contains_any(header, _PII_HEADERS):
         return "PII"
-    if _contains_any(header, _INDIRECT_HEADERS):
+    if _contains_any(header, _INDIRECT_HEADERS) or _is_age_header(header):
         return "INDIRECT_PII"
     return _TYPE_SENSITIVITY.get(detected_type, "UNKNOWN")
 
