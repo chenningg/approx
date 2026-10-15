@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { ArrowRightIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { PreviewTable } from "./preview-table";
@@ -108,6 +109,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
           )}
           <Button type="button" size="sm">
             Process data
+            <ArrowRightIcon className="size-4" />
           </Button>
         </div>
       </div>
