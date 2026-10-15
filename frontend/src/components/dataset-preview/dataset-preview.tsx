@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 
 import { PreviewTable } from "./preview-table";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   datasetQueryOptions,
@@ -66,16 +67,6 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const removedCount = useMemo(
-    () =>
-      columns.filter(
-        (column) =>
-          (actions[column.index] ?? defaultActionFor(column.sensitivity)) ===
-          "remove",
-      ).length,
-    [columns, actions],
-  );
-
   if (dataset.isPending) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-6">
@@ -109,11 +100,15 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
             {sheet} · {total.toLocaleString()} rows · {columns.length} columns
           </p>
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {isFetchingNextPage && <span>Loading more rows…</span>}
-          {removedCount > 0 && (
-            <span>{removedCount} column(s) marked for removal</span>
+        <div className="flex items-center gap-3">
+          {isFetchingNextPage && (
+            <span className="text-xs text-muted-foreground">
+              Loading more rows…
+            </span>
           )}
+          <Button type="button" size="sm">
+            Process data
+          </Button>
         </div>
       </div>
 
