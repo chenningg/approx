@@ -16,6 +16,7 @@ DetectedType = Literal[
     "DATE",
     "AGE",
     "GENDER",
+    "TITLE",
     "ADDRESS",
     "NAME",
     "UNKNOWN",

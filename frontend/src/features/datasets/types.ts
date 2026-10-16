@@ -11,6 +11,7 @@ export type DetectedType =
   | 'DATE'
   | 'AGE'
   | 'GENDER'
+  | 'TITLE'
   | 'ADDRESS'
   | 'NAME'
   | 'UNKNOWN'

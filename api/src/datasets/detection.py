@@ -6,7 +6,7 @@ capped sample of non-empty values. Every column is classified along two axes:
 * ``type``        - what the data structurally looks like (NRIC, PHONE, ...).
 * ``sensitivity`` - how it should be handled (PII, INDIRECT_PII, SENSITIVE, UNKNOWN).
 
-Gated types (PASSPORT, DRIVING_LICENSE, AGE, bare-valued PHONE) additionally
+Gated types (PASSPORT, DRIVING_LICENSE, AGE, TITLE, bare-valued PHONE) additionally
 require a matching header hint on top of the value shape to avoid false
 positives on generic codes. Values arrive as the normalized strings produced by
 the service.
@@ -137,6 +137,7 @@ HEADER_HINTS: tuple[tuple[tuple[str, ...], DetectedType], ...] = (
         ),
         "ADDRESS",
     ),
+    (("title", "designation", "rank", "role", "jobtitle", "jobrole"), "TITLE"),
     (("name", "fullname"), "NAME"),
 )
 
@@ -243,6 +244,23 @@ def _is_address(value: str) -> bool:
     return bool(ADDRESS_RE.search(value))
 
 
+_TITLE_TOKEN_RE = re.compile(
+    r"^(?:[A-Za-z][A-Za-z.,&'/-]*|II|III|IV|V|VI|VII|VIII|IX|X)$"
+)
+_TITLE_MAX_LEN = 80
+_TITLE_MAX_TOKENS = 6
+
+
+def _is_title(value: str) -> bool:
+    candidate = value.strip()
+    if not candidate or len(candidate) > _TITLE_MAX_LEN:
+        return False
+    tokens = candidate.split()
+    if not 1 <= len(tokens) <= _TITLE_MAX_TOKENS:
+        return False
+    return all(_TITLE_TOKEN_RE.match(token) for token in tokens)
+
+
 def _is_name(value: str) -> bool:
     candidate = value.strip()
     if not candidate or len(candidate) > 60:
@@ -279,11 +297,12 @@ _VALUE_CHECKS: tuple[
     ("ADDRESS", "_is_address"),
     ("PASSPORT", "_is_passport"),
     ("DRIVING_LICENSE", "_is_driving_license"),
+    ("TITLE", "_is_title"),
     ("NAME", "_is_name"),
 )
 
 # Types whose value checkers are only meaningful with a matching header hint.
-_HINT_GATED = {"PASSPORT", "DRIVING_LICENSE", "AGE"}
+_HINT_GATED = {"PASSPORT", "DRIVING_LICENSE", "AGE", "TITLE"}
 
 # Without a name-flavoured header, only treat a column as NAME once it has
 # enough distinct values that it can't just be a low-cardinality category.
@@ -304,13 +323,14 @@ _TYPE_SENSITIVITY: dict[DetectedType, Sensitivity] = {
     "PHONE": "PII",
     "EMAIL": "PII",
     "URL": "PII",
-    "ADDRESS": "PII",
     "IP_ADDRESS": "PII",
     "CARD": "SENSITIVE",
     "DOB": "INDIRECT_PII",
     "DATE": "INDIRECT_PII",
     "AGE": "INDIRECT_PII",
     "GENDER": "INDIRECT_PII",
+    "ADDRESS": "INDIRECT_PII",
+    "TITLE": "INDIRECT_PII",
     "UNKNOWN": "UNKNOWN",
 }
 

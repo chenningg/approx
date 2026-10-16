@@ -51,6 +51,10 @@ const STYLES: Record<DetectedType, { label: string; className: string }> = {
     label: 'Gender',
     className: 'border-sky-500/30 bg-sky-500/10 text-sky-400',
   },
+  TITLE: {
+    label: 'Title',
+    className: 'border-purple-500/30 bg-purple-500/10 text-purple-400',
+  },
   ADDRESS: {
     label: 'Address',
     className: 'border-teal-500/30 bg-teal-500/10 text-teal-400',

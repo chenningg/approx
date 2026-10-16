@@ -135,18 +135,23 @@ export function PreviewTable({
                 </div>
                 {columns.map((column) => {
                   const value = row?.[column.index]
-                  const removed = actionFor(column) === 'remove'
+                  const action = actionFor(column)
+                  const removed = action === 'remove'
+                  const redacted = action === 'redact'
+                  const display = redacted
+                    ? (value ?? '').replace(/\S/g, '*')
+                    : (value ?? '')
                   return (
                     <div
                       key={column.index}
                       style={{ width: COLUMN_WIDTH }}
-                      title={value ?? undefined}
+                      title={redacted ? undefined : (value ?? undefined)}
                       className={cn(
                         'flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90',
                         removed && 'text-muted-foreground line-through opacity-50',
                       )}
                     >
-                      <span className="truncate">{value ?? ''}</span>
+                      <span className="truncate">{display}</span>
                     </div>
                   )
                 })}
