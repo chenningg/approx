@@ -1,0 +1,14 @@
+# The api image builds with the repo root as context (api/compose.yaml: context: ..)
+# so uv can resolve the laya-client path dep at laya/sdk/python. Keep the context small.
+.git
+**/__pycache__
+**/*.pyc
+**/.venv
+**/node_modules
+**/dist
+api/data
+laya/models
+laya/.hf-cache
+laya/.pip-cache
+*.log
+.env

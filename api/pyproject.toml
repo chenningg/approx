@@ -11,6 +11,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "email-validator>=2.3.0",
     "fastapi[standard]>=0.141.1",
+    "laya-client",
     "loguru>=0.7.3",
     "openpyxl>=3.1.5",
     "pwdlib[argon2]>=0.3.1",
@@ -29,3 +30,6 @@ entrypoint = "src.main:app"
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+laya-client = { path = "../laya/sdk/python" }

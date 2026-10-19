@@ -1,10 +1,14 @@
 FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim
 
-WORKDIR /app
+# Build context is the repo root (compose sets context: ..), because the
+# laya-client dependency is a path dep at laya/sdk/python.
+WORKDIR /app/api
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
-COPY pyproject.toml uv.lock README.md ./
-COPY src ./src
+COPY api/pyproject.toml api/uv.lock api/README.md ./
+COPY api/src ./src
+# uv.lock resolves laya-client from ../laya/sdk/python relative to the project dir.
+COPY laya/sdk/python /app/laya/sdk/python
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev

@@ -18,6 +18,9 @@ class Config(BaseSettings):
     data_dir: str = "data"
     db_url: str = "postgresql+asyncpg://approx:approx@localhost:5432/approx"
     redis_url: str = "redis://localhost:6379/0"
+    # laya-serve (POST /v1/systemone). Host-side default; in Docker use
+    # LAYA_BASE_URL=http://laya-serve:8000 (see .env.example).
+    laya_base_url: str = "http://127.0.0.1:8000"
 
     # Read in lists of strings
     @field_validator("cors_origins", mode="before")

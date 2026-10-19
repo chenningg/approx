@@ -18,6 +18,7 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 - Managed by uv (`api/uv.lock`, `api/.python-version` picks 3.14). Use `uv ...` from `api/`, never `pip`.
 - FastAPI app is `app` in `src/main.py`. `[tool.uv] package = false` (flat layout — the `src` dir is a package named `src`, no `api` package); the entrypoint is set via `[tool.fastapi] entrypoint = "src.main:app"`. Run with `fastapi dev` (hot reload) or `fastapi run`; don't invoke uvicorn directly (`main:app`/`api:app` won't import).
 - No tests or linter (ruff not configured) — don't invent `pytest`/`ruff` targets.
+- `laya-client` (the HTTP client SDK from `laya/sdk/python`, not the `laya` engine package) is a path dependency: `uv add ../laya/sdk/python` style, resolved via `[tool.uv.sources]`. The api image therefore builds with the **repo root** as context (`api/compose.yaml`: `context: ..`, `dockerfile: api/Dockerfile`) so `uv sync --frozen` finds `laya/sdk/python`; the root `.dockerignore` keeps that context small. Runtime base URL: `config.laya_base_url` / `LAYA_BASE_URL` (host default `http://127.0.0.1:8000`, Docker `http://laya-serve:8000`). The SDK client is blocking — call it off the event loop.
 
 ## frontend/ — Vite 8 + React 19 + TS with npm
 - `npm run build` is `vite build && tsc -b` — the order matters: **do not revert to `tsc -b && vite build`**. Vite's TanStack Router plugin generates `src/routeTree.gen.ts` during dev/build; tsc must run after it. `routeTree.gen.ts` is generated and committed.
@@ -28,6 +29,6 @@ Two independent subprojects managed via Makefiles at the root and per-subproject
 - Docker: `frontend/compose.yaml` mounts `./src` and vite runs with `--host 0.0.0.0`; local `npm run dev` binds localhost. Port 5173.
 
 ## Docker layout
-- Root `compose.yaml` only `include`s `api/compose.yaml` and `frontend/compose.yaml` (compose v2.20+; project name `approx`, services `approx-api-1`/`approx-frontend-1`). Each sub-compose also works standalone from its directory.
-- Hot reload in containers relies on bind mounts (`./src:/app/src`) plus container-side watchers (uvicorn `--reload` for api, Vite HMR for frontend). No `--watch`/develop block is needed. All `up`/`dev`/`api-up`/`frontend-up` targets run `docker compose ... --build` so dependency changes in `package*.json`/`uv.lock` are picked up.
-- Images: api uses `uv sync --frozen --no-dev --editable` (editable so the mounted source is imported); frontend uses `node:24-alpine`.
+- Root `compose.yaml` `include`s `api/compose.yaml`, `frontend/compose.yaml`, `laya/compose.yaml` (one-shot quickstart) and `laya/compose.http.yaml` (the `laya-serve` HTTP server on `127.0.0.1:8000`, `POST /v1/systemone` + `GET /health`; lazy checkpoint download into the shared `approx_model-cache` volume, `LAYA_PRELOAD=1` to preload, optional `LAYA_API_KEY`). Compose v2.20+; project name `approx`, services `approx-api-1`/`approx-frontend-1`/`approx-laya-serve-1`. Each sub-compose also works standalone from its directory.
+- Hot reload in containers relies on bind mounts (`./src:/app/api/src` for api, `./src:/app/src` for frontend) plus container-side watchers (uvicorn `--reload` for api, Vite HMR for frontend). No `--watch`/develop block is needed. All `up`/`dev`/`api-up`/`frontend-up` targets run `docker compose ... --build` so dependency changes in `package*.json`/`uv.lock` are picked up.
+- Images: api uses `uv sync --frozen --no-dev` (WORKDIR `/app/api`; non-editable `laya-client` is baked from the build context); frontend uses `node:24-alpine`.

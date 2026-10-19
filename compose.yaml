@@ -2,3 +2,4 @@ include:
   - api/compose.yaml
   - frontend/compose.yaml
   - laya/compose.yaml
+  - laya/compose.http.yaml

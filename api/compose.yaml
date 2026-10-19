@@ -1,11 +1,13 @@
 services:
   api:
     build:
-      context: .
+      # Repo root: the laya-client dependency is a path dep at laya/sdk/python.
+      context: ..
+      dockerfile: api/Dockerfile
     ports:
       - "8080:8080"
     volumes:
-      - ./src:/app/src
+      - ./src:/app/api/src
     env_file:
       - .env
     depends_on:
