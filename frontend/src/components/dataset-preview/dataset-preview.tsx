@@ -50,7 +50,9 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
 
   const actionFor = useCallback(
     (column: ColumnInfo) =>
-      actions[column.index] ?? defaultActionFor(column.sensitivity),
+      actions[column.index] ??
+      column.default_action ??
+      defaultActionFor(column.sensitivity),
     [actions],
   );
 

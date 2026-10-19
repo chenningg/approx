@@ -1,0 +1,410 @@
+[
+  {
+    "name": "sales_nric",
+    "header": "NRIC",
+    "values": ["S9845988A", "S9872173E", "S0913192C", "S0939879D", "S0931239E", "S1234679F", "S0689781B", "S0931279B", "S0875989E"],
+    "expected_type": "NRIC",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "sales_name",
+    "header": "Name",
+    "values": ["Javier Ong", "Xinyi Toh", "Margaret Chua", "Anton Ong", "Jasmin Li", "Ravid Ashwarnan", "Gombak Teo", "Jalen Wong", "Matthew Lee"],
+    "expected_type": "NAME",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "sales_age",
+    "header": "Age",
+    "values": ["27", "26", "66", "45", "24", "35", "36", "20", "19"],
+    "expected_type": "AGE",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "sales_gender",
+    "header": "Gender",
+    "values": ["M", "F", "F", "M", "F", "M", "M", "M", "M"],
+    "expected_type": "GENDER",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "sales_address",
+    "header": "Address",
+    "values": ["Blk 88 Punggol St 12", "Blk 20A Sengkang Ave 3", "Blk 77 Simei Ave 5", "9 Mandarin Drive", "Blk 19 Bugis St 2", "Blk 88 Geylang Ln 4", "Blk 22 Tampines Ave 4", "Blk 10 Choa Chu Kang St 43", "2 Orchard Rd"],
+    "expected_type": "ADDRESS",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "sales_education",
+    "header": "Education",
+    "values": ["Diploma", "Bachelors", "Masters", "Doctorate", "Bachelors", "Bachelors", "Bachelors", "Bachelors", "Bachelors"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "sales_sales",
+    "header": "Sales",
+    "values": ["4000", "10000", "30000", "50000", "10000", "20000", "22000", "12000", "11000"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "sales_title",
+    "header": "Title",
+    "values": ["Jr Sales Assistant", "Sales Assistant", "Sales Associate", "Sales Director", "Jr Sales Assistant", "Sales Assistant", "Sales Assistant", "Jr Sales Assistant", "Jr Sales Assistant"],
+    "expected_type": "TITLE",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "sales_compensation",
+    "header": "Compensation",
+    "values": ["3000", "7000", "12000", "20000", "4000", "8000", "8400", "5000", "5000"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "SENSITIVE",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "sales_promotion",
+    "header": "Promotion Percentage",
+    "values": ["0.6", "0.2", "0.05", "0.1", "0.1", "0.2", "0.2", "0.25", "0.3"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "sales_remarks",
+    "header": "Remarks",
+    "values": ["This is a test, very long text, goes on forever. This is not sensitive but it shall pretend to be. Can the app detect it? It keeps going on and on. No identifiable information here, maybe? But perhaps' who knows?", "GG"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "phone_mobile",
+    "header": "Mobile",
+    "values": ["+65 9123 4567", "+65 8765 4321", "+65 8123 4567", "+65 9876 5432", "+65 8234 5671"],
+    "expected_type": "PHONE",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "phone_bare",
+    "header": "Contact",
+    "values": ["91234567", "87654321", "81234567", "98765432", "82345671"],
+    "expected_type": "PHONE",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "email_work",
+    "header": "Email",
+    "values": ["alice@corp.com", "bob@corp.com", "chen@example.org", "dana@shop.net", "evan@mail.io"],
+    "expected_type": "EMAIL",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "website_url",
+    "header": "Website",
+    "values": ["https://example.com/a", "https://shop.example.org", "www.example.net", "https://blog.example.com/post", "https://docs.example.io"],
+    "expected_type": "URL",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "ip_address",
+    "header": "IP Address",
+    "values": ["192.168.1.1", "10.0.0.5", "172.16.3.4", "203.0.113.7", "198.51.100.9"],
+    "expected_type": "IP_ADDRESS",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "dob",
+    "header": "Date of Birth",
+    "values": ["1990-01-02", "1985-11-23", "1978-03-15", "1992-07-30", "1969-12-01"],
+    "expected_type": "DOB",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "date_joined",
+    "header": "Date Joined",
+    "values": ["2021-05-14", "2020-01-03", "2022-09-19", "2019-06-25", "2023-02-11"],
+    "expected_type": "DATE",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "date_recorded",
+    "header": "Recorded At",
+    "values": ["2024-03-01", "2024-03-02", "2024-03-05", "2024-03-08", "2024-03-12"],
+    "expected_type": "DATE",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "gender_sex",
+    "header": "Sex",
+    "values": ["Male", "Female", "Male", "Female", "Other", "Male", "Female", "Male", "Female"],
+    "expected_type": "GENDER",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "address_street",
+    "header": "Address",
+    "values": ["123 Main St", "45 River Rd", "8 Ocean Ave", "77 Sunflower Lane", "2 Jurong West Street 81"],
+    "expected_type": "ADDRESS",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "passport_no",
+    "header": "Passport",
+    "values": ["K1234567", "M7654321", "T2345678", "G8765432", "F3456789"],
+    "expected_type": "PASSPORT",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "driving_licence",
+    "header": "Driving Licence",
+    "values": ["SQ8012345", "SQ8012346", "SQ8012347", "SQ8012348", "SQ8012349"],
+    "expected_type": "DRIVING_LICENSE",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "card_number",
+    "header": "Card Number",
+    "values": ["4111111111111111", "4242424242424242", "5555555555554444", "378282246310005", "6011111111111117"],
+    "expected_type": "CARD",
+    "expected_sensitivity": "SENSITIVE",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "age_nohint",
+    "header": "Years Old",
+    "values": ["27", "30", "25", "41", "38", "29", "52", "33", "26"],
+    "expected_type": "AGE",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "marital_status",
+    "header": "Marital Status",
+    "values": ["Single", "Married", "Single", "Divorced", "Married", "Single", "Widowed", "Married", "Single"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "department",
+    "header": "Department",
+    "values": ["Engineering", "Engineering", "Engineering", "Engineering", "Engineering", "Engineering", "Sales", "Sales", "Sales", "Sales", "Sales", "Marketing", "Marketing", "Marketing", "Marketing", "HR", "HR", "HR", "Finance", "Finance"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "employment_status",
+    "header": "Employment Status",
+    "values": ["Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Part-time", "Part-time", "Part-time", "Part-time", "Part-time", "Part-time", "Part-time", "Contract", "Contract", "Contract", "Contract", "Contract"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "monthly_salary",
+    "header": "Monthly Salary",
+    "values": ["8000", "12000", "9500", "15000", "7000", "9000", "11000", "13000", "8500"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "SENSITIVE",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "religion",
+    "header": "Religion",
+    "values": ["Islam", "Islam", "Islam", "Islam", "Islam", "Christianity", "Christianity", "Christianity", "Christianity", "Christianity", "Buddhism", "Buddhism", "Buddhism", "Buddhism", "Hinduism", "Hinduism", "Hinduism", "None", "None", "None"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "SENSITIVE",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "diagnosis",
+    "header": "Diagnosis",
+    "values": ["Hypertension", "Hypertension", "Hypertension", "Hypertension", "Asthma", "Asthma", "Asthma", "Asthma", "Diabetes", "Diabetes", "Diabetes", "Diabetes", "Migraine", "Migraine", "Migraine", "Migraine", "Dermatitis", "Dermatitis", "Dermatitis", "Dermatitis", "Anaemia", "Anaemia", "Anaemia", "Anaemia"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "SENSITIVE",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "bank_account",
+    "header": "Bank Account",
+    "values": ["1234567890", "9876543210", "1122334455", "6677889900", "5544332211"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "SENSITIVE",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "invoice_no",
+    "header": "Invoice No",
+    "values": ["INV-0001", "INV-0002", "INV-0003", "INV-0004", "INV-0005", "INV-0006", "INV-0007", "INV-0008", "INV-0009", "INV-0010", "INV-0011", "INV-0012", "INV-0013", "INV-0014", "INV-0015", "INV-0016", "INV-0017", "INV-0018", "INV-0019", "INV-0020", "INV-0021", "INV-0022", "INV-0023", "INV-0024", "INV-0025"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "employee_id",
+    "header": "Employee ID",
+    "values": ["E000001", "E000002", "E000003", "E000004", "E000005", "E000006", "E000007", "E000008", "E000009", "E000010", "E000011", "E000012", "E000013", "E000014", "E000015", "E000016", "E000017", "E000018", "E000019", "E000020", "E000021", "E000022", "E000023", "E000024", "E000025", "E000026", "E000027", "E000028", "E000029", "E000030"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "comments_pii",
+    "header": "Comments",
+    "values": ["Call me at 9182 7364 for details", "Email admin@corp.com for support", "Reach john@example.com please", "Phone 8765 4321 works best", "Contact sarah@example.com", "Text 8234 5671 anytime"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "conversion_rate",
+    "header": "Conversion Rate",
+    "values": ["12%", "8%", "25%", "3%", "15%", "9%", "21%", "7%"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "price",
+    "header": "Price ($)",
+    "values": ["$99.90", "$49.50", "$120.00", "$15.75", "$200.00"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "order_no",
+    "header": "Order",
+    "values": ["1001", "1002", "1003", "1004", "1005", "1006", "1007", "1008", "1009", "1010", "1011", "1012", "1013", "1014", "1015", "1016", "1017", "1018", "1019", "1020", "1021", "1022", "1023", "1024", "1025", "1026", "1027", "1028", "1029", "1030"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "customer_name_zh",
+    "header": "姓名",
+    "values": ["张伟", "李娜", "王芳", "陈静", "刘洋", "杨洋", "黄磊", "周杰", "吴敏", "徐静", "孙丽", "马超", "朱婷", "胡军", "郭靖"],
+    "expected_type": "NAME",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "remarks_hi",
+    "header": "टिप्पणी",
+    "values": ["ग्राहक ने दो बार बिल भुगतान किया", "भुगतान अभी बाकी है", "ग्राहक ने रिफंड मांगा", "बिल जारी कर दिया गया", "भुगतान हो गया"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "address_ar",
+    "header": "العنوان",
+    "values": ["شارع الملك فهد، الرياض", "طريق الملك عبدالعزيز، جدة", "حي النخيل، الدمام", "شارع الأمير محمد بن عبدالعزيز، الرياض", "شارع التحلية، جدة", "حي الورود، الرياض", "طريق الأمير سلطان، الدمام", "شارع الأربعين، جدة"],
+    "expected_type": "ADDRESS",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "position_titles",
+    "header": "Position",
+    "values": ["Software Engineer", "Sales Director", "Account Manager", "HR Business Partner", "Data Analyst", "Product Manager", "QA Engineer", "DevOps Engineer", "Marketing Lead", "Finance Controller", "Operations Manager", "Support Specialist", "Legal Advisor", "UX Designer", "Chief Technology Officer"],
+    "expected_type": "TITLE",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "customer_names",
+    "header": "Customer",
+    "values": ["Alice Tan", "Brian Lim", "Carla Reyes", "David Koh", "Elena Park", "Farid Rahman", "Grace Wong", "Hassan Ali", "Irene Chua", "Jason Teo", "Karen Ng", "Leonard Sim", "Maria Goh", "Nathan Yeo", "Olivia Koh", "Patrick Lee", "Quentin Ho", "Rachel Ong", "Samuel Goh", "Tina Lau", "Umar Ismail", "Vera Seow", "Wesley Chan", "Xavier Tan", "Yvonne Lim", "Zachary Ng", "Adrian Wong", "Bella Chua", "Chris Sim", "Diana Ho"],
+    "expected_type": "NAME",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "product_description",
+    "header": "Description",
+    "values": ["Premium plan billed annually", "Standard tier monthly billing", "Free trial conversion funnel", "Enterprise SSO integration", "API rate limit increase", "Bulk export feature launch", "Dark mode theme update", "Mobile offline caching", "Webhook retry policy", "Sandbox environment reset"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "satisfaction_score",
+    "header": "Satisfaction Score",
+    "values": ["4.5", "3.2", "5.0", "4.1", "3.8", "4.9", "2.7", "4.4", "5.0", "3.5"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "discount",
+    "header": "Discount",
+    "values": ["0.1", "0.25", "0.05", "0.5", "0.15", "0.2", "0.3", "0.1"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "nric_noheader",
+    "header": null,
+    "values": ["S9845988A", "S8765432B", "T0123456C", "S7654321D", "G1234567E", "S2345678F", "F8765432G", "S3456789H", "T9876543I", "S4567890J"],
+    "expected_type": "NRIC",
+    "expected_sensitivity": "PII",
+    "expected_action": "synthetic"
+  },
+  {
+    "name": "nationality",
+    "header": "Nationality",
+    "values": ["Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Malaysian", "Malaysian", "Malaysian", "Malaysian", "Malaysian", "Malaysian", "Indonesian", "Indonesian", "Indonesian", "Indonesian", "Indonesian", "Thai", "Thai", "Thai", "Thai"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "INDIRECT_PII",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "serial_number",
+    "header": "Serial Number",
+    "values": ["XK-100455", "XK-100456", "XK-100457", "XK-100458", "XK-100459", "XK-100460", "XK-100461", "XK-100462", "XK-100463", "XK-100464", "XK-100465", "XK-100466", "XK-100467", "XK-100468", "XK-100469", "XK-100470", "XK-100471", "XK-100472", "XK-100473", "XK-100474", "XK-100475", "XK-100476", "XK-100477", "XK-100478", "XK-100479", "XK-100480", "XK-100481", "XK-100482", "XK-100483", "XK-100484"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  },
+  {
+    "name": "blood_type",
+    "header": "Blood Type",
+    "values": ["A+", "A+", "A+", "A+", "A+", "A+", "B+", "B+", "B+", "B+", "B+", "O-", "O-", "O-", "O-", "O-", "AB+", "AB+", "AB+", "AB+"],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "SENSITIVE",
+    "expected_action": "k_anonymity"
+  },
+  {
+    "name": "empty_notes",
+    "header": "Optional Notes",
+    "values": [],
+    "expected_type": "UNKNOWN",
+    "expected_sensitivity": "NON_SENSITIVE",
+    "expected_action": "keep"
+  }
+]

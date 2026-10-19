@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
+from collections.abc import Callable
 from datetime import datetime
 
 DetectedType = str
@@ -31,6 +32,10 @@ PASSPORT_RE = re.compile(r"^[A-Z]\d{7}$")
 DRIVING_LICENSE_RE = re.compile(r"^[A-Z]{1,2}\d{7,10}$")
 _PHONE_SEPARATOR_RE = re.compile(r"[\s().+-]")
 AGE_RE = re.compile(r"^(?:0|[1-9]\d{0,2})$")
+
+# Unanchored variants for contact details embedded in free text.
+_EMAIL_IN_TEXT_RE = re.compile(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}")
+_PHONE_IN_TEXT_RE = re.compile(r"\+?\d[\d\s().-]{5,14}\d")
 
 DATE_FORMATS = (
     "%Y-%m-%d",
@@ -76,7 +81,7 @@ _AGE_HEADERS = frozenset(
 ADDRESS_RE = re.compile(
     r"\b(blk|block|street|st|road|rd|avenue|ave|lane|drive|crescent|close|walk|"
     r"place|terrace|floor|unit|boulevard|blvd|way|singapore|sector|district)\b|"
-    r"#|\b\d{6}\b",
+    r"#|(?<![\w-])\d{6}(?![\w-])",
     re.IGNORECASE,
 )
 
@@ -308,7 +313,64 @@ _HINT_GATED = {"PASSPORT", "DRIVING_LICENSE", "AGE", "TITLE"}
 # enough distinct values that it can't just be a low-cardinality category.
 _NAME_MIN_UNIQUE = 12
 
+# Name columns are mostly unique; below this distinct ratio the values look
+# like a category (marital status, department) whatever the header suggests.
+_NAME_MIN_RATIO = 0.5
+
 _VALUE_THRESHOLD = 0.8
+
+# Structural types whose checker can vouch for a value on its own. Used to
+# sanity-check model-proposed types against the actual values.
+_FORMAT_CHECKS: dict[DetectedType, Callable[[str], bool]] = {
+    "NRIC": _is_nric,
+    "PASSPORT": _is_passport,
+    "DRIVING_LICENSE": _is_driving_license,
+    "CARD": _is_card,
+    "PHONE": lambda value: _is_phone(value, allow_bare=True),
+    "EMAIL": _is_email,
+    "URL": _is_url,
+    "IP_ADDRESS": _is_ip,
+    "GENDER": _is_gender,
+    "AGE": _is_age,
+    "DOB": _is_date,
+    "DATE": _is_date,
+}
+
+
+def samples_support_type(detected_type: DetectedType, values: list[str]) -> bool:
+    """Whether the column's values structurally support ``detected_type``.
+
+    True for every type without a structural checker, so callers fall back to
+    trusting the answer. Empty columns can't contradict anything either.
+    """
+    present = [value for value in values if value]
+    if not present:
+        return True
+    checker = _FORMAT_CHECKS.get(detected_type)
+    if checker is not None:
+        return any(checker(value) for value in present)
+    if detected_type == "NAME":
+        return len(set(present)) / len(present) >= _NAME_MIN_RATIO
+    return True
+
+
+def samples_look_personal(values: list[str]) -> bool:
+    """Whether any value contains a direct identifier (email, NRIC, phone).
+
+    Searches inside free text, e.g. a comments column whose rows mention
+    contact details; catches PII the header and type cannot see.
+    """
+    for value in values:
+        if not value:
+            continue
+        if _EMAIL_IN_TEXT_RE.search(value) or NRIC_RE.search(
+            value.upper().replace(" ", "")
+        ):
+            return True
+        for match in _PHONE_IN_TEXT_RE.finditer(value):
+            if 7 <= len(re.sub(r"\D", "", match.group())) <= 15:
+                return True
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -390,6 +452,9 @@ _INDIRECT_HEADERS = (
     "dob",
     "marital",
     "occupation",
+    "education",
+    "employment",
+    "department",
 )
 
 

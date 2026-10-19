@@ -21,6 +21,13 @@ class Config(BaseSettings):
     # laya-serve (POST /v1/systemone). Host-side default; in Docker use
     # LAYA_BASE_URL=http://laya-serve:8000 (see .env.example).
     laya_base_url: str = "http://127.0.0.1:8000"
+    # Column detection consults laya-serve only for uncertain columns; failures
+    # degrade to heuristics. min_confidence gates Laya's answers (abstentions
+    # keep the heuristic result), timeout is the per-call client timeout (s).
+    laya_detect_enabled: bool = True
+    laya_detect_min_confidence: float = 0.5
+    laya_detect_timeout: float = 30.0
+    laya_api_key: str | None = None
 
     # Read in lists of strings
     @field_validator("cors_origins", mode="before")

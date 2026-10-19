@@ -22,7 +22,13 @@ DetectedType = Literal[
     "UNKNOWN",
 ]
 
-Sensitivity = Literal["PII", "INDIRECT_PII", "SENSITIVE", "UNKNOWN"]
+Sensitivity = Literal[
+    "PII", "INDIRECT_PII", "SENSITIVE", "NON_SENSITIVE", "UNKNOWN"
+]
+
+ColumnAction = Literal[
+    "keep", "remove", "redact", "k_anonymity", "synthetic"
+]
 
 
 class ColumnInfo(BaseModel):
@@ -32,6 +38,9 @@ class ColumnInfo(BaseModel):
     sensitivity: Sensitivity
     confidence: float
     sample_values: list[str]
+    # Sensitivity x categorizability default (see src/datasets/actions.py).
+    # Optional so datasets stored before this field existed still validate.
+    default_action: ColumnAction | None = None
 
 
 class DatasetPreview(BaseModel):

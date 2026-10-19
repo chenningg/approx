@@ -15,6 +15,10 @@ const STYLES: Record<Sensitivity, { label: string; className: string }> = {
     label: 'Sensitive',
     className: 'border-violet-500/40 bg-violet-500/10 text-violet-400',
   },
+  NON_SENSITIVE: {
+    label: 'Non-sensitive',
+    className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
+  },
   UNKNOWN: {
     label: 'Low risk',
     className: 'border-border bg-muted text-muted-foreground',

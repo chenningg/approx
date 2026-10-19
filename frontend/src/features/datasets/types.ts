@@ -20,6 +20,7 @@ export type Sensitivity =
   | 'PII'
   | 'INDIRECT_PII'
   | 'SENSITIVE'
+  | 'NON_SENSITIVE'
   | 'UNKNOWN'
 
 export interface ColumnInfo {
@@ -29,6 +30,7 @@ export interface ColumnInfo {
   sensitivity: Sensitivity
   confidence: number
   sample_values: string[]
+  default_action: ColumnAction | null
 }
 
 export interface DatasetPreview {
@@ -68,6 +70,7 @@ const DEFAULT_ACTIONS: Record<Sensitivity, ColumnAction> = {
   PII: 'redact',
   INDIRECT_PII: 'k_anonymity',
   SENSITIVE: 'redact',
+  NON_SENSITIVE: 'keep',
   UNKNOWN: 'keep',
 }
 

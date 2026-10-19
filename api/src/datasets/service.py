@@ -11,7 +11,8 @@ from uuid import UUID
 
 from loguru import logger
 
-from src.datasets import storage
+from src.config import config
+from src.datasets import actions, laya_detection, storage
 from src.datasets.detection import detect_column
 
 PREVIEW_ROWS = 100
@@ -153,6 +154,22 @@ def create_dataset(
                 "confidence": confidence,
                 "sample_values": sample_values,
             }
+        )
+
+    # Uncertain columns go to laya-serve (heuristics stand when it is down),
+    # then every column gets its sensitivity x categorizability default.
+    laya_detection.enhance_columns(
+        columns,
+        samples,
+        base_url=config.laya_base_url,
+        enabled=config.laya_detect_enabled,
+        min_confidence=config.laya_detect_min_confidence,
+        timeout=config.laya_detect_timeout,
+        api_key=config.laya_api_key,
+    )
+    for index, column in enumerate(columns):
+        column["default_action"] = actions.column_action(
+            column["detected_type"], column["sensitivity"], samples[index]
         )
 
     meta = {
