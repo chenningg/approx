@@ -1,0 +1,32 @@
+POST http://localhost:8000/v1/systemone
+content-type: application/json
+
+{
+  "model": "typed-decisions",
+  "state": "Customer wrote: I was charged twice for my order #4411 and want one of the charges refunded today.",
+  "questions": {
+    "is_refund_request": {
+      "type": "noul",
+      "instructions": "Is the customer asking for a refund?"
+    },
+    "urgency": {
+      "type": "choice",
+      "instructions": "How urgent is this?",
+      "criteria": {
+        "low": "can wait a week",
+        "high": "needs action today"
+      }
+    },
+    "frustration": {
+      "type": "score",
+      "instructions": "How frustrated is the customer?",
+      "criteria": [
+        "calm",
+        "mildly annoyed",
+        "angry"
+      ]
+    }
+  }
+}
+
+###
