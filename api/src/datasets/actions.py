@@ -2,9 +2,12 @@
 
 Product decision (the "matrix"):
 
-* PII / INDIRECT_PII / SENSITIVE + categorizable     -> ``k_anonymity``
-* PII / INDIRECT_PII / SENSITIVE + not categorizable  -> ``synthetic``
+* INDIRECT_PII / SENSITIVE + categorizable      -> ``generalize``
+* INDIRECT_PII / SENSITIVE + not categorizable  -> ``redact``
 * NON_SENSITIVE (or a sensitivity we could not settle) -> ``keep``
+
+Column-level actions are per-column only. Dataset-wide methods (k-anonymity,
+synthetic generation) are chosen separately in the output step, not here.
 
 Categorizability means "values can be turned into equivalence classes without
 being destroyed": known types declare it directly, and UNKNOWN columns fall back
@@ -112,5 +115,5 @@ def column_action(
         # Laya decided "non_sensitive", or it could not decide and we fell back.
         return "keep"
     if is_categorizable(detected_type, samples):
-        return "k_anonymity"
-    return "synthetic"
+        return "generalize"
+    return "redact"

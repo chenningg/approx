@@ -74,6 +74,10 @@ interface DetectedTypeBadgeProps {
   confidence: number
 }
 
+export function detectedTypeLabel(type: DetectedType): string {
+  return (STYLES[type] ?? STYLES.UNKNOWN).label
+}
+
 export function DetectedTypeBadge({
   type,
   confidence,

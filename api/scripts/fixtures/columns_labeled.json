@@ -5,7 +5,7 @@
     "values": ["S9845988A", "S9872173E", "S0913192C", "S0939879D", "S0931239E", "S1234679F", "S0689781B", "S0931279B", "S0875989E"],
     "expected_type": "NRIC",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "sales_name",
@@ -13,7 +13,7 @@
     "values": ["Javier Ong", "Xinyi Toh", "Margaret Chua", "Anton Ong", "Jasmin Li", "Ravid Ashwarnan", "Gombak Teo", "Jalen Wong", "Matthew Lee"],
     "expected_type": "NAME",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "sales_age",
@@ -21,7 +21,7 @@
     "values": ["27", "26", "66", "45", "24", "35", "36", "20", "19"],
     "expected_type": "AGE",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "sales_gender",
@@ -29,7 +29,7 @@
     "values": ["M", "F", "F", "M", "F", "M", "M", "M", "M"],
     "expected_type": "GENDER",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "sales_address",
@@ -37,7 +37,7 @@
     "values": ["Blk 88 Punggol St 12", "Blk 20A Sengkang Ave 3", "Blk 77 Simei Ave 5", "9 Mandarin Drive", "Blk 19 Bugis St 2", "Blk 88 Geylang Ln 4", "Blk 22 Tampines Ave 4", "Blk 10 Choa Chu Kang St 43", "2 Orchard Rd"],
     "expected_type": "ADDRESS",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "sales_education",
@@ -45,7 +45,7 @@
     "values": ["Diploma", "Bachelors", "Masters", "Doctorate", "Bachelors", "Bachelors", "Bachelors", "Bachelors", "Bachelors"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "sales_sales",
@@ -61,7 +61,7 @@
     "values": ["Jr Sales Assistant", "Sales Assistant", "Sales Associate", "Sales Director", "Jr Sales Assistant", "Sales Assistant", "Sales Assistant", "Jr Sales Assistant", "Jr Sales Assistant"],
     "expected_type": "TITLE",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "sales_compensation",
@@ -69,7 +69,7 @@
     "values": ["3000", "7000", "12000", "20000", "4000", "8000", "8400", "5000", "5000"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "SENSITIVE",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "sales_promotion",
@@ -93,7 +93,7 @@
     "values": ["+65 9123 4567", "+65 8765 4321", "+65 8123 4567", "+65 9876 5432", "+65 8234 5671"],
     "expected_type": "PHONE",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "phone_bare",
@@ -101,7 +101,7 @@
     "values": ["91234567", "87654321", "81234567", "98765432", "82345671"],
     "expected_type": "PHONE",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "email_work",
@@ -109,7 +109,7 @@
     "values": ["alice@corp.com", "bob@corp.com", "chen@example.org", "dana@shop.net", "evan@mail.io"],
     "expected_type": "EMAIL",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "website_url",
@@ -117,7 +117,7 @@
     "values": ["https://example.com/a", "https://shop.example.org", "www.example.net", "https://blog.example.com/post", "https://docs.example.io"],
     "expected_type": "URL",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "ip_address",
@@ -125,7 +125,7 @@
     "values": ["192.168.1.1", "10.0.0.5", "172.16.3.4", "203.0.113.7", "198.51.100.9"],
     "expected_type": "IP_ADDRESS",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "dob",
@@ -133,7 +133,7 @@
     "values": ["1990-01-02", "1985-11-23", "1978-03-15", "1992-07-30", "1969-12-01"],
     "expected_type": "DOB",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "date_joined",
@@ -141,7 +141,7 @@
     "values": ["2021-05-14", "2020-01-03", "2022-09-19", "2019-06-25", "2023-02-11"],
     "expected_type": "DATE",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "date_recorded",
@@ -149,7 +149,7 @@
     "values": ["2024-03-01", "2024-03-02", "2024-03-05", "2024-03-08", "2024-03-12"],
     "expected_type": "DATE",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "gender_sex",
@@ -157,7 +157,7 @@
     "values": ["Male", "Female", "Male", "Female", "Other", "Male", "Female", "Male", "Female"],
     "expected_type": "GENDER",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "address_street",
@@ -165,7 +165,7 @@
     "values": ["123 Main St", "45 River Rd", "8 Ocean Ave", "77 Sunflower Lane", "2 Jurong West Street 81"],
     "expected_type": "ADDRESS",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "passport_no",
@@ -173,7 +173,7 @@
     "values": ["K1234567", "M7654321", "T2345678", "G8765432", "F3456789"],
     "expected_type": "PASSPORT",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "driving_licence",
@@ -181,7 +181,7 @@
     "values": ["SQ8012345", "SQ8012346", "SQ8012347", "SQ8012348", "SQ8012349"],
     "expected_type": "DRIVING_LICENSE",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "card_number",
@@ -189,7 +189,7 @@
     "values": ["4111111111111111", "4242424242424242", "5555555555554444", "378282246310005", "6011111111111117"],
     "expected_type": "CARD",
     "expected_sensitivity": "SENSITIVE",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "age_nohint",
@@ -197,7 +197,7 @@
     "values": ["27", "30", "25", "41", "38", "29", "52", "33", "26"],
     "expected_type": "AGE",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "marital_status",
@@ -205,7 +205,7 @@
     "values": ["Single", "Married", "Single", "Divorced", "Married", "Single", "Widowed", "Married", "Single"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "department",
@@ -213,7 +213,7 @@
     "values": ["Engineering", "Engineering", "Engineering", "Engineering", "Engineering", "Engineering", "Sales", "Sales", "Sales", "Sales", "Sales", "Marketing", "Marketing", "Marketing", "Marketing", "HR", "HR", "HR", "Finance", "Finance"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "employment_status",
@@ -221,7 +221,7 @@
     "values": ["Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Full-time", "Part-time", "Part-time", "Part-time", "Part-time", "Part-time", "Part-time", "Part-time", "Contract", "Contract", "Contract", "Contract", "Contract"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "monthly_salary",
@@ -229,7 +229,7 @@
     "values": ["8000", "12000", "9500", "15000", "7000", "9000", "11000", "13000", "8500"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "SENSITIVE",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "religion",
@@ -237,7 +237,7 @@
     "values": ["Islam", "Islam", "Islam", "Islam", "Islam", "Christianity", "Christianity", "Christianity", "Christianity", "Christianity", "Buddhism", "Buddhism", "Buddhism", "Buddhism", "Hinduism", "Hinduism", "Hinduism", "None", "None", "None"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "SENSITIVE",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "diagnosis",
@@ -245,7 +245,7 @@
     "values": ["Hypertension", "Hypertension", "Hypertension", "Hypertension", "Asthma", "Asthma", "Asthma", "Asthma", "Diabetes", "Diabetes", "Diabetes", "Diabetes", "Migraine", "Migraine", "Migraine", "Migraine", "Dermatitis", "Dermatitis", "Dermatitis", "Dermatitis", "Anaemia", "Anaemia", "Anaemia", "Anaemia"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "SENSITIVE",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "bank_account",
@@ -253,7 +253,7 @@
     "values": ["1234567890", "9876543210", "1122334455", "6677889900", "5544332211"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "SENSITIVE",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "invoice_no",
@@ -269,7 +269,7 @@
     "values": ["E000001", "E000002", "E000003", "E000004", "E000005", "E000006", "E000007", "E000008", "E000009", "E000010", "E000011", "E000012", "E000013", "E000014", "E000015", "E000016", "E000017", "E000018", "E000019", "E000020", "E000021", "E000022", "E000023", "E000024", "E000025", "E000026", "E000027", "E000028", "E000029", "E000030"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "comments_pii",
@@ -277,7 +277,7 @@
     "values": ["Call me at 9182 7364 for details", "Email admin@corp.com for support", "Reach john@example.com please", "Phone 8765 4321 works best", "Contact sarah@example.com", "Text 8234 5671 anytime"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "conversion_rate",
@@ -309,7 +309,7 @@
     "values": ["张伟", "李娜", "王芳", "陈静", "刘洋", "杨洋", "黄磊", "周杰", "吴敏", "徐静", "孙丽", "马超", "朱婷", "胡军", "郭靖"],
     "expected_type": "NAME",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "remarks_hi",
@@ -325,7 +325,7 @@
     "values": ["شارع الملك فهد، الرياض", "طريق الملك عبدالعزيز، جدة", "حي النخيل، الدمام", "شارع الأمير محمد بن عبدالعزيز، الرياض", "شارع التحلية، جدة", "حي الورود، الرياض", "طريق الأمير سلطان، الدمام", "شارع الأربعين، جدة"],
     "expected_type": "ADDRESS",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "position_titles",
@@ -333,7 +333,7 @@
     "values": ["Software Engineer", "Sales Director", "Account Manager", "HR Business Partner", "Data Analyst", "Product Manager", "QA Engineer", "DevOps Engineer", "Marketing Lead", "Finance Controller", "Operations Manager", "Support Specialist", "Legal Advisor", "UX Designer", "Chief Technology Officer"],
     "expected_type": "TITLE",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "customer_names",
@@ -341,7 +341,7 @@
     "values": ["Alice Tan", "Brian Lim", "Carla Reyes", "David Koh", "Elena Park", "Farid Rahman", "Grace Wong", "Hassan Ali", "Irene Chua", "Jason Teo", "Karen Ng", "Leonard Sim", "Maria Goh", "Nathan Yeo", "Olivia Koh", "Patrick Lee", "Quentin Ho", "Rachel Ong", "Samuel Goh", "Tina Lau", "Umar Ismail", "Vera Seow", "Wesley Chan", "Xavier Tan", "Yvonne Lim", "Zachary Ng", "Adrian Wong", "Bella Chua", "Chris Sim", "Diana Ho"],
     "expected_type": "NAME",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "product_description",
@@ -373,7 +373,7 @@
     "values": ["S9845988A", "S8765432B", "T0123456C", "S7654321D", "G1234567E", "S2345678F", "F8765432G", "S3456789H", "T9876543I", "S4567890J"],
     "expected_type": "NRIC",
     "expected_sensitivity": "PII",
-    "expected_action": "synthetic"
+    "expected_action": "redact"
   },
   {
     "name": "nationality",
@@ -381,7 +381,7 @@
     "values": ["Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Singaporean", "Malaysian", "Malaysian", "Malaysian", "Malaysian", "Malaysian", "Malaysian", "Indonesian", "Indonesian", "Indonesian", "Indonesian", "Indonesian", "Thai", "Thai", "Thai", "Thai"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "INDIRECT_PII",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "serial_number",
@@ -397,7 +397,7 @@
     "values": ["A+", "A+", "A+", "A+", "A+", "A+", "B+", "B+", "B+", "B+", "B+", "O-", "O-", "O-", "O-", "O-", "AB+", "AB+", "AB+", "AB+"],
     "expected_type": "UNKNOWN",
     "expected_sensitivity": "SENSITIVE",
-    "expected_action": "k_anonymity"
+    "expected_action": "generalize"
   },
   {
     "name": "empty_notes",

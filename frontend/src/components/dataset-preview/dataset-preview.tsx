@@ -3,6 +3,8 @@ import { ArrowRightIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { PreviewTable } from "./preview-table";
+import { GeneralizeDialog } from "./generalize-dialog";
+import { RedactDialog } from "./redact-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -10,9 +12,11 @@ import {
   datasetRowsQueryOptions,
 } from "@/features/datasets/queries";
 import {
-  defaultActionFor,
+  defaultColumnConfig,
   type ColumnAction,
+  type ColumnConfig,
   type ColumnInfo,
+  type RedactConfig,
 } from "@/features/datasets/types";
 
 interface DatasetPreviewProps {
@@ -21,7 +25,8 @@ interface DatasetPreviewProps {
 
 export function DatasetPreview({ id }: DatasetPreviewProps) {
   const dataset = useQuery(datasetQueryOptions(id));
-  const [actions, setActions] = useState<Record<number, ColumnAction>>({});
+  const [configs, setConfigs] = useState<Record<number, ColumnConfig>>({});
+  const [settingsColumn, setSettingsColumn] = useState<number | null>(null);
 
   const rowsQuery = useInfiniteQuery({
     ...datasetRowsQueryOptions(id),
@@ -48,20 +53,39 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
   const total =
     dataset.data?.total_rows ?? rowsQuery.data?.pages[0]?.total ?? 0;
 
-  const actionFor = useCallback(
+  const configFor = useCallback(
     (column: ColumnInfo) =>
-      actions[column.index] ??
-      column.default_action ??
-      defaultActionFor(column.sensitivity),
-    [actions],
+      configs[column.index] ?? defaultColumnConfig(column),
+    [configs],
+  );
+
+  const updateConfig = useCallback(
+    (index: number, patch: Partial<ColumnConfig>) => {
+      setConfigs((prev) => {
+        const column = columns.find((item) => item.index === index);
+        if (!column) return prev;
+        const base = prev[index] ?? defaultColumnConfig(column);
+        return { ...prev, [index]: { ...base, ...patch } };
+      });
+    },
+    [columns],
   );
 
   const handleActionChange = useCallback(
-    (index: number, action: ColumnAction) => {
-      setActions((prev) => ({ ...prev, [index]: action }));
-    },
-    [],
+    (index: number, action: ColumnAction) => updateConfig(index, { action }),
+    [updateConfig],
   );
+
+  const handleRedactChange = useCallback(
+    (index: number, redact: RedactConfig) => updateConfig(index, { redact }),
+    [updateConfig],
+  );
+
+  const activeColumn =
+    settingsColumn === null
+      ? null
+      : (columns.find((column) => column.index === settingsColumn) ?? null);
+  const activeConfig = activeColumn ? configFor(activeColumn) : null;
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = rowsQuery;
   const handleLoadMore = useCallback(() => {
@@ -119,12 +143,36 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
       <PreviewTable
         columns={columns}
         rows={rows}
-        actionFor={actionFor}
+        configFor={configFor}
         onActionChange={handleActionChange}
+        onOpenSettings={setSettingsColumn}
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
         onLoadMore={handleLoadMore}
       />
+
+      {activeColumn && activeConfig && (
+        <>
+          <RedactDialog
+            open={activeConfig.action === "redact"}
+            column={activeColumn}
+            config={activeConfig.redact}
+            onOpenChange={(open) => {
+              if (!open) setSettingsColumn(null);
+            }}
+            onChange={(redact) =>
+              handleRedactChange(activeColumn.index, redact)
+            }
+          />
+          <GeneralizeDialog
+            open={activeConfig.action === "generalize"}
+            column={activeColumn}
+            onOpenChange={(open) => {
+              if (!open) setSettingsColumn(null);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

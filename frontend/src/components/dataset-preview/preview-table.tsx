@@ -1,10 +1,15 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useRef } from 'react'
 
-import { ColumnActionSelect } from './column-action-select'
+import { ColumnActionControls } from './column-action-controls'
 import { DetectedTypeBadge } from './detected-type-badge'
 import { SensitivityBadge } from './sensitivity-badge'
-import type { ColumnAction, ColumnInfo } from '@/features/datasets/types'
+import { maskValue } from '@/features/datasets/masking'
+import type {
+  ColumnAction,
+  ColumnConfig,
+  ColumnInfo,
+} from '@/features/datasets/types'
 import { cn } from '@/lib/utils'
 
 const ROW_HEIGHT = 36
@@ -15,8 +20,9 @@ const LOAD_MORE_THRESHOLD = 25
 interface PreviewTableProps {
   columns: ColumnInfo[]
   rows: (string | null)[][]
-  actionFor: (column: ColumnInfo) => ColumnAction
+  configFor: (column: ColumnInfo) => ColumnConfig
   onActionChange: (index: number, action: ColumnAction) => void
+  onOpenSettings: (index: number) => void
   hasNextPage: boolean
   isFetchingNextPage: boolean
   onLoadMore: () => void
@@ -25,8 +31,9 @@ interface PreviewTableProps {
 export function PreviewTable({
   columns,
   rows,
-  actionFor,
+  configFor,
   onActionChange,
+  onOpenSettings,
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
@@ -95,9 +102,12 @@ export function PreviewTable({
                   confidence={column.confidence}
                 />
                 <SensitivityBadge sensitivity={column.sensitivity} />
-                <ColumnActionSelect
-                  value={actionFor(column)}
-                  onChange={(action) => onActionChange(column.index, action)}
+                <ColumnActionControls
+                  action={configFor(column).action}
+                  onActionChange={(action) =>
+                    onActionChange(column.index, action)
+                  }
+                  onOpenSettings={() => onOpenSettings(column.index)}
                 />
               </div>
             ))}
@@ -135,11 +145,11 @@ export function PreviewTable({
                 </div>
                 {columns.map((column) => {
                   const value = row?.[column.index]
-                  const action = actionFor(column)
-                  const removed = action === 'remove'
-                  const redacted = action === 'redact'
+                  const config = configFor(column)
+                  const removed = config.action === 'remove'
+                  const redacted = config.action === 'redact'
                   const display = redacted
-                    ? (value ?? '').replace(/\S/g, '*')
+                    ? maskValue(column.detected_type, value ?? null, config.redact)
                     : (value ?? '')
                   return (
                     <div

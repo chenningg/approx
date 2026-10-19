@@ -27,7 +27,7 @@ Sensitivity = Literal[
 ]
 
 ColumnAction = Literal[
-    "keep", "remove", "redact", "k_anonymity", "synthetic"
+    "keep", "remove", "redact", "generalize"
 ]
 
 
