@@ -20,7 +20,7 @@ const STYLES: Record<Sensitivity, { label: string; className: string }> = {
     className: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
   },
   UNKNOWN: {
-    label: 'Low risk',
+    label: 'Unclassified',
     className: 'border-border bg-muted text-muted-foreground',
   },
 }
@@ -36,7 +36,11 @@ export function SensitivityBadge({ sensitivity }: SensitivityBadgeProps) {
     <Badge
       variant="outline"
       className={cn('font-normal', style.className)}
-      title={`Classified as ${style.label}`}
+      title={
+        sensitivity === 'UNKNOWN'
+          ? 'Sensitivity could not be determined'
+          : `Classified as ${style.label}`
+      }
     >
       <span className="truncate">{style.label}</span>
     </Badge>
