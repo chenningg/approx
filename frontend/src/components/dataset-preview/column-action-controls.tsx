@@ -2,17 +2,20 @@ import { Settings2Icon } from 'lucide-react'
 
 import { ColumnActionSelect } from './column-action-select'
 import { Button } from '@/components/ui/button'
-import type { ColumnAction } from '@/features/datasets/types'
+import type { ColumnAction, ColumnInfo } from '@/features/datasets/types'
+import { cn } from '@/lib/utils'
 
 const ACTIONS_WITH_SETTINGS: ColumnAction[] = ['redact', 'generalize']
 
 interface ColumnActionControlsProps {
+  column: ColumnInfo
   action: ColumnAction
   onActionChange: (action: ColumnAction) => void
   onOpenSettings: () => void
 }
 
 export function ColumnActionControls({
+  column,
   action,
   onActionChange,
   onOpenSettings,
@@ -21,23 +24,32 @@ export function ColumnActionControls({
   return (
     <div className="flex items-center gap-1">
       <div className="min-w-0 flex-1">
-        <ColumnActionSelect value={action} onChange={onActionChange} />
+        <ColumnActionSelect
+          column={column}
+          value={action}
+          onChange={onActionChange}
+        />
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-sm"
-        disabled={!hasSettings}
-        aria-label="Action settings"
-        title={
-          hasSettings
-            ? 'Configure action settings'
-            : 'No settings for this action'
-        }
-        onClick={onOpenSettings}
+      <span
+        className={cn(!hasSettings && 'cursor-not-allowed')}
+        title={!hasSettings ? 'No settings for this action' : undefined}
       >
-        <Settings2Icon />
-      </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          disabled={!hasSettings}
+          aria-label="Action settings"
+          title={
+            hasSettings
+              ? 'Configure action settings'
+              : 'No settings for this action'
+          }
+          onClick={onOpenSettings}
+        >
+          <Settings2Icon />
+        </Button>
+      </span>
     </div>
   )
 }

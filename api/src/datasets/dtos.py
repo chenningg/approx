@@ -38,6 +38,11 @@ class ColumnInfo(BaseModel):
     sensitivity: Sensitivity
     confidence: float
     sample_values: list[str]
+    # Numeric range over the column (None when it holds no numbers); drives
+    # bucket boundaries for generalize in the frontend. Optional so datasets
+    # stored before these fields existed still validate.
+    numeric_min: float | None = None
+    numeric_max: float | None = None
     # Sensitivity x categorizability default (see src/datasets/actions.py).
     # Optional so datasets stored before this field existed still validate.
     default_action: ColumnAction | None = None

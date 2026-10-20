@@ -16,6 +16,7 @@ import {
   type ColumnAction,
   type ColumnConfig,
   type ColumnInfo,
+  type GeneralizeConfig,
   type RedactConfig,
 } from "@/features/datasets/types";
 
@@ -78,6 +79,12 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
 
   const handleRedactChange = useCallback(
     (index: number, redact: RedactConfig) => updateConfig(index, { redact }),
+    [updateConfig],
+  );
+
+  const handleGeneralizeChange = useCallback(
+    (index: number, generalize: GeneralizeConfig) =>
+      updateConfig(index, { generalize }),
     [updateConfig],
   );
 
@@ -167,9 +174,13 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
           <GeneralizeDialog
             open={activeConfig.action === "generalize"}
             column={activeColumn}
+            config={activeConfig.generalize}
             onOpenChange={(open) => {
               if (!open) setSettingsColumn(null);
             }}
+            onChange={(generalize) =>
+              handleGeneralizeChange(activeColumn.index, generalize)
+            }
           />
         </>
       )}

@@ -1,5 +1,3 @@
-import { RotateCcwIcon } from 'lucide-react'
-
 import { detectedTypeLabel } from './detected-type-badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,7 +37,7 @@ export function RedactDialog({
   const sample =
     column?.sample_values.find((value) => value.trim() !== '') ?? ''
   const isCustom = config.mode === 'custom'
-  const sliderValue = isCustom ? config.percentage : 100
+  const sliderValue = config.percentage
   const preview = sample ? maskValue(type, sample, config) : ''
   const defaultPreview = sample ? maskValue(type, sample, DEFAULT_REDACT) : ''
 
@@ -60,29 +58,18 @@ export function RedactDialog({
             <div className="flex flex-col gap-3">
               <div
                 className={cn(
-                  'rounded-lg border p-3',
+                  'cursor-pointer rounded-lg border p-3 transition-colors hover:border-primary/40',
                   !isCustom
                     ? 'border-primary/40 bg-primary/5'
                     : 'border-border',
                 )}
+                onClick={() => onChange({ ...config, mode: 'type_aware' })}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">Default masking</p>
-                    <p className="text-xs text-muted-foreground">
-                      Type-aware masking for {detectedTypeLabel(type)}.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={!isCustom}
-                    onClick={() => onChange({ ...DEFAULT_REDACT })}
-                  >
-                    <RotateCcwIcon className="size-3.5" />
-                    Reset
-                  </Button>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Default masking</p>
+                  <p className="text-xs text-muted-foreground">
+                    Type-aware masking for {detectedTypeLabel(type)}.
+                  </p>
                 </div>
                 {sample && (
                   <p className="mt-2 truncate font-mono text-xs text-foreground/80">
@@ -95,11 +82,12 @@ export function RedactDialog({
 
               <div
                 className={cn(
-                  'rounded-lg border p-3',
+                  'cursor-pointer rounded-lg border p-3 transition-colors hover:border-primary/40',
                   isCustom
                     ? 'border-primary/40 bg-primary/5'
                     : 'border-border',
                 )}
+                onClick={() => onChange({ ...config, mode: 'custom' })}
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">Custom masking</p>
@@ -110,16 +98,23 @@ export function RedactDialog({
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Mask more characters from the end as asterisks.
                 </p>
-                <Slider
+                <div
                   className="mt-3"
-                  value={[sliderValue]}
-                  min={1}
-                  max={100}
-                  step={1}
-                  onValueChange={(next) =>
-                    onChange({ mode: 'custom', percentage: next[0] ?? 100 })
-                  }
-                />
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <Slider
+                    value={[sliderValue]}
+                    min={1}
+                    max={100}
+                    step={1}
+                    onValueChange={(next) =>
+                      onChange({
+                        ...config,
+                        percentage: next[0] ?? config.percentage,
+                      })
+                    }
+                  />
+                </div>
               </div>
 
               {sample && (

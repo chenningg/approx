@@ -65,15 +65,27 @@ _NUMERIC_WITH_DECIMAL = re.compile(r"^-?\d+(?:\.\d+)?$")
 _NUMERIC_WITH_THOUSANDS = re.compile(r"^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$")
 
 
-def _is_binnable(value: str) -> bool:
-    candidate = value.strip().rstrip("%").replace(" ", "").strip()
-    if not candidate:
-        return False
-    candidate = candidate.lstrip(_CURRENCY_CHARS).rstrip(_CURRENCY_CHARS)
+def _clean_candidate(value: str) -> str:
+    candidate = value.strip().rstrip("%").replace(" ", "").strip()
+    return candidate.lstrip(_CURRENCY_CHARS).rstrip(_CURRENCY_CHARS)
+
+
+def parse_number(value: str) -> float | None:
+    """Parse a numeric cell (plain, thousands-separated, %- or currency-wrapped)."""
+    candidate = _clean_candidate(value)
     if _NUMERIC_WITH_DECIMAL.match(candidate) or _NUMERIC_WITH_THOUSANDS.match(
         candidate
     ):
+        return float(candidate.replace(",", ""))
+    return None
+
+
+def _is_binnable(value: str) -> bool:
+    if parse_number(value) is not None:
         return True
+    candidate = _clean_candidate(value)
+    if not candidate:
+        return False
     for fmt in DATE_FORMATS:
         try:
             datetime.strptime(candidate, fmt)

@@ -115,6 +115,8 @@ def create_dataset(
 
     column_count = len(headers)
     samples: list[list[str]] = [[] for _ in range(column_count)]
+    numeric_min: list[float | None] = [None] * column_count
+    numeric_max: list[float | None] = [None] * column_count
     preview: list[list[str | None]] = []
     total_rows = 0
 
@@ -132,11 +134,18 @@ def create_dataset(
                 preview.append(row)
             for index in range(column_count):
                 value = row[index]
-                if (
-                    value is not None
-                    and len(samples[index]) < DETECTION_SAMPLE_CAP
-                ):
+                if value is None:
+                    continue
+                if len(samples[index]) < DETECTION_SAMPLE_CAP:
                     samples[index].append(value)
+                number = actions.parse_number(value)
+                if number is not None:
+                    low = numeric_min[index]
+                    high = numeric_max[index]
+                    if low is None or number < low:
+                        numeric_min[index] = number
+                    if high is None or number > high:
+                        numeric_max[index] = number
             handle.write(json.dumps(row, ensure_ascii=False))
             handle.write("\n")
 
@@ -153,6 +162,8 @@ def create_dataset(
                 "sensitivity": sensitivity,
                 "confidence": confidence,
                 "sample_values": sample_values,
+                "numeric_min": numeric_min[index],
+                "numeric_max": numeric_max[index],
             }
         )
 

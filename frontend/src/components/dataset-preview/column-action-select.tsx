@@ -6,18 +6,21 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  COLUMN_ACTIONS,
+  availableActionsFor,
   type ColumnAction,
+  type ColumnInfo,
 } from '@/features/datasets/types'
 import { cn } from '@/lib/utils'
 
 interface ColumnActionSelectProps {
+  column: ColumnInfo
   value: ColumnAction
   onChange: (action: ColumnAction) => void
   className?: string
 }
 
 export function ColumnActionSelect({
+  column,
   value,
   onChange,
   className,
@@ -35,7 +38,7 @@ export function ColumnActionSelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {COLUMN_ACTIONS.map((action) => (
+        {availableActionsFor(column).map((action) => (
           <SelectItem key={action.value} value={action.value}>
             {action.label}
           </SelectItem>

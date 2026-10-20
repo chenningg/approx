@@ -5,6 +5,7 @@ import { ColumnActionControls } from './column-action-controls'
 import { DetectedTypeBadge } from './detected-type-badge'
 import { SensitivityBadge } from './sensitivity-badge'
 import { maskValue } from '@/features/datasets/masking'
+import { generalizeValue } from '@/features/datasets/generalize'
 import type {
   ColumnAction,
   ColumnConfig,
@@ -103,6 +104,7 @@ export function PreviewTable({
                 />
                 <SensitivityBadge sensitivity={column.sensitivity} />
                 <ColumnActionControls
+                  column={column}
                   action={configFor(column).action}
                   onActionChange={(action) =>
                     onActionChange(column.index, action)
@@ -148,14 +150,21 @@ export function PreviewTable({
                   const config = configFor(column)
                   const removed = config.action === 'remove'
                   const redacted = config.action === 'redact'
+                  const generalized = config.action === 'generalize'
                   const display = redacted
                     ? maskValue(column.detected_type, value ?? null, config.redact)
-                    : (value ?? '')
+                    : generalized
+                      ? generalizeValue(column, value ?? null, config.generalize)
+                      : (value ?? '')
                   return (
                     <div
                       key={column.index}
                       style={{ width: COLUMN_WIDTH }}
-                      title={redacted ? undefined : (value ?? undefined)}
+                      title={
+                        redacted || generalized
+                          ? undefined
+                          : (value ?? undefined)
+                      }
                       className={cn(
                         'flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90',
                         removed && 'text-muted-foreground line-through opacity-50',
