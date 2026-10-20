@@ -143,10 +143,10 @@ export const GENERALIZE_METHODS: {
   label: string
   hint: string
 }[] = [
-  { value: 'age', label: 'Age', hint: 'Fixed-width year bands, e.g. 20-29.' },
+  { value: 'age', label: 'Age (Numeric)', hint: 'Fixed-width year bands, e.g. 20-29.' },
   {
     value: 'dob',
-    label: 'Date of birth',
+    label: 'Date (General)',
     hint: 'Month, quarter, year or decade ranges.',
   },
   {

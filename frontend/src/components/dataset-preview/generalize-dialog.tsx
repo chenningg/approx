@@ -1,4 +1,5 @@
 import { detectedTypeLabel } from './detected-type-badge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
   AGE_BANDS,
   DOB_WIDTHS,
   GENERALIZE_METHODS,
+  defaultGeneralizeFor,
   type ColumnInfo,
   type GeneralizeConfig,
 } from '@/features/datasets/types'
@@ -39,6 +41,7 @@ export function GeneralizeDialog({
   const sample =
     column?.sample_values.find((value) => value.trim() !== '') ?? ''
   const preview = column && sample ? generalizeValue(column, sample, config) : ''
+  const recommended = column ? defaultGeneralizeFor(column).method : null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,8 +69,15 @@ export function GeneralizeDialog({
                   )}
                   onClick={() => onChange({ ...config, method: method.value })}
                 >
-                  <p className="text-sm font-medium">{method.label}</p>
-                  <p className="text-xs text-muted-foreground">{method.hint}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{method.label}</p>
+                    {recommended === method.value && (
+                      <Badge>Recommended</Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {method.hint}
+                  </p>
                 </div>
               ))}
 
