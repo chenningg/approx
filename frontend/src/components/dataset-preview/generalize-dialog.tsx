@@ -42,6 +42,8 @@ export function GeneralizeDialog({
     column?.sample_values.find((value) => value.trim() !== '') ?? ''
   const preview = column && sample ? generalizeValue(column, sample, config) : ''
   const recommended = column ? defaultGeneralizeFor(column).method : null
+  const activePill =
+    'border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground dark:border-primary dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,10 +94,7 @@ export function GeneralizeDialog({
                         size="sm"
                         variant="outline"
                         aria-pressed={config.ageBand === band}
-                        className={cn(
-                          config.ageBand === band &&
-                            'border-primary/40 bg-primary/5',
-                        )}
+                        className={cn(config.ageBand === band && activePill)}
                         onClick={() => onChange({ ...config, ageBand: band })}
                       >
                         {band}
@@ -117,8 +116,7 @@ export function GeneralizeDialog({
                         variant="outline"
                         aria-pressed={config.dobWidth === width.value}
                         className={cn(
-                          config.dobWidth === width.value &&
-                            'border-primary/40 bg-primary/5',
+                          config.dobWidth === width.value && activePill,
                         )}
                         onClick={() =>
                           onChange({ ...config, dobWidth: width.value })
