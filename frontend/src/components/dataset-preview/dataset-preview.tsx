@@ -1,12 +1,14 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ArrowRightIcon } from "lucide-react";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
+import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { PreviewTable } from "./preview-table";
 import { GeneralizeDialog } from "./generalize-dialog";
+import { ProcessDialog } from "./process-dialog";
 import { RedactDialog } from "./redact-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { startProcess } from "@/features/datasets/api";
 import {
   datasetQueryOptions,
   datasetRowsQueryOptions,
@@ -28,6 +30,8 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
   const dataset = useQuery(datasetQueryOptions(id));
   const [configs, setConfigs] = useState<Record<number, ColumnConfig>>({});
   const [settingsColumn, setSettingsColumn] = useState<number | null>(null);
+  const [processOpen, setProcessOpen] = useState(false);
+  const [processJobId, setProcessJobId] = useState<string | null>(null);
 
   const rowsQuery = useInfiniteQuery({
     ...datasetRowsQueryOptions(id),
@@ -101,6 +105,21 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const processMutation = useMutation({
+    mutationFn: () =>
+      startProcess(
+        id,
+        columns.map((column) => ({
+          index: column.index,
+          config: configFor(column),
+        })),
+      ),
+    onSuccess: (job) => {
+      setProcessJobId(job.job_id);
+      setProcessOpen(true);
+    },
+  });
+
   if (dataset.isPending) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-4 p-6">
@@ -140,9 +159,23 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
               Loading more rows…
             </span>
           )}
-          <Button type="button" size="sm">
+          {processMutation.isError && (
+            <span className="text-xs text-destructive">
+              Could not start processing.
+            </span>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            disabled={processMutation.isPending}
+            onClick={() => processMutation.mutate()}
+          >
+            {processMutation.isPending ? (
+              <Loader2Icon className="size-4 animate-spin" />
+            ) : (
+              <ArrowRightIcon className="size-4" />
+            )}
             Process data
-            <ArrowRightIcon className="size-4" />
           </Button>
         </div>
       </div>
@@ -184,6 +217,14 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
           />
         </>
       )}
+
+      <ProcessDialog
+        open={processOpen}
+        datasetId={id}
+        jobId={processJobId}
+        onOpenChange={setProcessOpen}
+        onRetry={() => processMutation.mutate()}
+      />
     </div>
   );
 }

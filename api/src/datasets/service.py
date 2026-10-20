@@ -234,6 +234,11 @@ def get_dataset(dataset_id: UUID | str) -> dict[str, Any]:
     return {**meta, "rows": rows}
 
 
+def get_meta(dataset_id: UUID | str) -> dict[str, Any]:
+    """Read dataset metadata without loading any rows."""
+    return _read_meta(dataset_id)
+
+
 def get_rows(
     dataset_id: UUID | str, offset: int, limit: int
 ) -> dict[str, Any]:

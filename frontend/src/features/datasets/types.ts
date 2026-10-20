@@ -55,6 +55,19 @@ export interface RowsPage {
   rows: (string | null)[][]
 }
 
+export interface ProcessStatus {
+  job_id: string
+  status: 'running' | 'completed' | 'failed'
+  progress: number
+  phase: string
+  processed_rows: number
+  total_rows: number
+  error: string | null
+  export_filename: string | null
+  output_columns: number | null
+  output_rows: number | null
+}
+
 export type ColumnAction = 'remove' | 'keep' | 'redact' | 'generalize'
 
 export const COLUMN_ACTIONS: { value: ColumnAction; label: string }[] = [

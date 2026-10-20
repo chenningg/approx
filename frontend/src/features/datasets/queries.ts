@@ -1,6 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
-import { getDataset, getDatasetRows } from './api'
+import { getDataset, getDatasetRows, getProcessStatus } from './api'
 
 export const ROWS_PAGE_SIZE = 200
 
@@ -24,4 +24,10 @@ export const datasetRowsQueryOptions = (id: string) =>
       const next = lastPage.offset + lastPage.rows.length
       return next < lastPage.total ? next : undefined
     },
+  })
+
+export const processStatusQueryOptions = (id: string, jobId: string) =>
+  queryOptions({
+    queryKey: ['datasets', id, 'process', jobId],
+    queryFn: () => getProcessStatus(id, jobId),
   })

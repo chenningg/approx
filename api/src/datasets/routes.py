@@ -2,11 +2,12 @@ from pathlib import Path
 from uuid import UUID, uuid7
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from src.auth.deps import AuthUserDep
-from src.datasets import service
-from src.datasets.dtos import DatasetPreview, RowsPage
+from src.datasets import processing, service
+from src.datasets.dtos import DatasetPreview, ProcessRequest, ProcessStatus, RowsPage
 from src.datasets.service import DatasetNotFoundError
 
 datasets_router = APIRouter(prefix="/datasets", tags=["datasets"])
@@ -79,3 +80,60 @@ async def get_dataset_rows(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found"
         ) from exc
     return RowsPage.model_validate(result)
+
+
+@datasets_router.post("/{dataset_id}/process", response_model=ProcessStatus)
+async def process_dataset(
+    dataset_id: UUID, request: ProcessRequest, auth_user: AuthUserDep
+) -> ProcessStatus:
+    try:
+        meta = await run_in_threadpool(service.get_meta, dataset_id)
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found"
+        ) from exc
+
+    valid = {column["index"] for column in meta["columns"]}
+    unknown = [column.index for column in request.columns if column.index not in valid]
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown column indexes: {unknown}",
+        )
+
+    job = processing.start_job(dataset_id, meta, request)
+    return ProcessStatus.model_validate(job)
+
+
+@datasets_router.get(
+    "/{dataset_id}/process/{job_id}", response_model=ProcessStatus
+)
+async def get_process_status(
+    dataset_id: UUID, job_id: str, auth_user: AuthUserDep
+) -> ProcessStatus:
+    try:
+        job = await run_in_threadpool(processing.get_status, dataset_id, job_id)
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Processing job not found",
+        ) from exc
+    return ProcessStatus.model_validate(job)
+
+
+@datasets_router.get("/{dataset_id}/process/{job_id}/export")
+async def export_processed(
+    dataset_id: UUID, job_id: str, auth_user: AuthUserDep
+) -> FileResponse:
+    found = await run_in_threadpool(processing.export_file, dataset_id, job_id)
+    if found is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Processed file not found",
+        )
+    path, filename = found
+    return FileResponse(
+        path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=filename,
+    )

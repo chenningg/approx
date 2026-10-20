@@ -1,7 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 DetectedType = Literal[
     "NRIC",
@@ -64,3 +64,39 @@ class RowsPage(BaseModel):
     limit: int
     total: int
     rows: list[list[str | None]]
+
+
+class RedactSettings(BaseModel):
+    mode: Literal["type_aware", "custom"] = "type_aware"
+    percentage: int = Field(default=100, ge=0, le=100)
+
+
+class GeneralizeSettings(BaseModel):
+    method: Literal["age", "dob", "numeric"] = "numeric"
+    age_band: int = Field(default=10, ge=1)
+    dob_width: Literal["month", "quarter", "year", "decade"] = "year"
+    buckets: int = Field(default=5, ge=1)
+
+
+class ProcessColumnConfig(BaseModel):
+    index: int
+    action: ColumnAction = "keep"
+    redact: RedactSettings = RedactSettings()
+    generalize: GeneralizeSettings = GeneralizeSettings()
+
+
+class ProcessRequest(BaseModel):
+    columns: list[ProcessColumnConfig]
+
+
+class ProcessStatus(BaseModel):
+    job_id: str
+    status: Literal["running", "completed", "failed"]
+    progress: float
+    phase: str
+    processed_rows: int
+    total_rows: int
+    error: str | None = None
+    export_filename: str | None = None
+    output_columns: int | None = None
+    output_rows: int | None = None

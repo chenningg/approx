@@ -6,6 +6,9 @@ Layout::
         original{suffix}   # the uploaded workbook
         meta.json          # columns, counts, sheet names
         rows.jsonl         # normalized rows, one JSON array per line
+        jobs/
+            {job_id}.json  # processing job status (survives restarts)
+            {job_id}.xlsx  # transformed output written by a completed job
 """
 
 from __future__ import annotations
@@ -36,6 +39,18 @@ def meta_path(dataset_id: UUID | str) -> Path:
 
 def rows_path(dataset_id: UUID | str) -> Path:
     return dataset_dir(dataset_id) / "rows.jsonl"
+
+
+def jobs_dir(dataset_id: UUID | str) -> Path:
+    return dataset_dir(dataset_id) / "jobs"
+
+
+def job_path(dataset_id: UUID | str, job_id: str) -> Path:
+    return jobs_dir(dataset_id) / f"{job_id}.json"
+
+
+def processed_path(dataset_id: UUID | str, job_id: str) -> Path:
+    return jobs_dir(dataset_id) / f"{job_id}.xlsx"
 
 
 def exists(dataset_id: UUID | str) -> bool:
