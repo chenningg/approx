@@ -43,7 +43,7 @@ services:
       # `amp_dtype`. Set LAYA_CUDA_AMP=fp16 to serve fp16 on a GPU host.
       LAYA_CUDA_AMP: "${LAYA_CUDA_AMP:-}"
       LAYA_CPU_AMP: "${LAYA_CPU_AMP:-}"
-      LAYA_PRELOAD: "${LAYA_PRELOAD:-0}"
+      LAYA_PRELOAD: "${LAYA_PRELOAD:-1}"
       LAYA_MODELS: "${LAYA_MODELS:-}"
       LAYA_THREADS: "${LAYA_THREADS:-${OMP_NUM_THREADS:-4}}"
       LAYA_AUTO_TASK: "${LAYA_AUTO_TASK:-0}"
