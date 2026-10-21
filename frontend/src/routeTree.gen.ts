@@ -15,7 +15,9 @@ import { Route as MarketingRouteRouteImport } from './routes/_marketing/route'
 import { Route as AppUploadRouteImport } from './routes/_app/upload'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
-import { Route as AppDatasetsDatasetIdRouteImport } from './routes/_app/datasets/$datasetId'
+import { Route as AppDatasetsDatasetIdRouteRouteImport } from './routes/_app/datasets/$datasetId/route'
+import { Route as AppDatasetsDatasetIdIndexRouteImport } from './routes/_app/datasets/$datasetId/index'
+import { Route as AppDatasetsDatasetIdTransformRouteImport } from './routes/_app/datasets/$datasetId/transform'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/_app',
@@ -44,23 +46,39 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MarketingRouteRoute,
 } as any)
-const AppDatasetsDatasetIdRoute = AppDatasetsDatasetIdRouteImport.update({
-  id: '/datasets/$datasetId',
-  path: '/datasets/$datasetId',
-  getParentRoute: () => AppRouteRoute,
-} as any)
+const AppDatasetsDatasetIdRouteRoute =
+  AppDatasetsDatasetIdRouteRouteImport.update({
+    id: '/datasets/$datasetId',
+    path: '/datasets/$datasetId',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppDatasetsDatasetIdIndexRoute =
+  AppDatasetsDatasetIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppDatasetsDatasetIdRouteRoute,
+  } as any)
+const AppDatasetsDatasetIdTransformRoute =
+  AppDatasetsDatasetIdTransformRouteImport.update({
+    id: '/transform',
+    path: '/transform',
+    getParentRoute: () => AppDatasetsDatasetIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof MarketingIndexRoute
   '/upload': typeof AppUploadRoute
   '/login': typeof AuthLoginRoute
-  '/datasets/$datasetId': typeof AppDatasetsDatasetIdRoute
+  '/datasets/$datasetId': typeof AppDatasetsDatasetIdRouteRouteWithChildren
+  '/datasets/$datasetId/transform': typeof AppDatasetsDatasetIdTransformRoute
+  '/datasets/$datasetId/': typeof AppDatasetsDatasetIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
   '/upload': typeof AppUploadRoute
   '/login': typeof AuthLoginRoute
-  '/datasets/$datasetId': typeof AppDatasetsDatasetIdRoute
+  '/datasets/$datasetId/transform': typeof AppDatasetsDatasetIdTransformRoute
+  '/datasets/$datasetId': typeof AppDatasetsDatasetIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,13 +88,26 @@ export interface FileRoutesById {
   '/_app/upload': typeof AppUploadRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_marketing/': typeof MarketingIndexRoute
-  '/_app/datasets/$datasetId': typeof AppDatasetsDatasetIdRoute
+  '/_app/datasets/$datasetId': typeof AppDatasetsDatasetIdRouteRouteWithChildren
+  '/_app/datasets/$datasetId/transform': typeof AppDatasetsDatasetIdTransformRoute
+  '/_app/datasets/$datasetId/': typeof AppDatasetsDatasetIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/upload' | '/login' | '/datasets/$datasetId'
+  fullPaths:
+    | '/'
+    | '/upload'
+    | '/login'
+    | '/datasets/$datasetId'
+    | '/datasets/$datasetId/transform'
+    | '/datasets/$datasetId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/upload' | '/login' | '/datasets/$datasetId'
+  to:
+    | '/'
+    | '/upload'
+    | '/login'
+    | '/datasets/$datasetId/transform'
+    | '/datasets/$datasetId'
   id:
     | '__root__'
     | '/_app'
@@ -86,6 +117,8 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_marketing/'
     | '/_app/datasets/$datasetId'
+    | '/_app/datasets/$datasetId/transform'
+    | '/_app/datasets/$datasetId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -142,20 +175,50 @@ declare module '@tanstack/react-router' {
       id: '/_app/datasets/$datasetId'
       path: '/datasets/$datasetId'
       fullPath: '/datasets/$datasetId'
-      preLoaderRoute: typeof AppDatasetsDatasetIdRouteImport
+      preLoaderRoute: typeof AppDatasetsDatasetIdRouteRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_app/datasets/$datasetId/': {
+      id: '/_app/datasets/$datasetId/'
+      path: '/'
+      fullPath: '/datasets/$datasetId/'
+      preLoaderRoute: typeof AppDatasetsDatasetIdIndexRouteImport
+      parentRoute: typeof AppDatasetsDatasetIdRouteRoute
+    }
+    '/_app/datasets/$datasetId/transform': {
+      id: '/_app/datasets/$datasetId/transform'
+      path: '/transform'
+      fullPath: '/datasets/$datasetId/transform'
+      preLoaderRoute: typeof AppDatasetsDatasetIdTransformRouteImport
+      parentRoute: typeof AppDatasetsDatasetIdRouteRoute
     }
   }
 }
 
+interface AppDatasetsDatasetIdRouteRouteChildren {
+  AppDatasetsDatasetIdTransformRoute: typeof AppDatasetsDatasetIdTransformRoute
+  AppDatasetsDatasetIdIndexRoute: typeof AppDatasetsDatasetIdIndexRoute
+}
+
+const AppDatasetsDatasetIdRouteRouteChildren: AppDatasetsDatasetIdRouteRouteChildren =
+  {
+    AppDatasetsDatasetIdTransformRoute: AppDatasetsDatasetIdTransformRoute,
+    AppDatasetsDatasetIdIndexRoute: AppDatasetsDatasetIdIndexRoute,
+  }
+
+const AppDatasetsDatasetIdRouteRouteWithChildren =
+  AppDatasetsDatasetIdRouteRoute._addFileChildren(
+    AppDatasetsDatasetIdRouteRouteChildren,
+  )
+
 interface AppRouteRouteChildren {
   AppUploadRoute: typeof AppUploadRoute
-  AppDatasetsDatasetIdRoute: typeof AppDatasetsDatasetIdRoute
+  AppDatasetsDatasetIdRouteRoute: typeof AppDatasetsDatasetIdRouteRouteWithChildren
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppUploadRoute: AppUploadRoute,
-  AppDatasetsDatasetIdRoute: AppDatasetsDatasetIdRoute,
+  AppDatasetsDatasetIdRouteRoute: AppDatasetsDatasetIdRouteRouteWithChildren,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

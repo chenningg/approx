@@ -27,6 +27,7 @@ interface PreviewTableProps {
   hasNextPage: boolean
   isFetchingNextPage: boolean
   onLoadMore: () => void
+  showActions?: boolean
 }
 
 export function PreviewTable({
@@ -38,6 +39,7 @@ export function PreviewTable({
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
+  showActions = true,
 }: PreviewTableProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   const headerTrackRef = useRef<HTMLDivElement>(null)
@@ -103,14 +105,16 @@ export function PreviewTable({
                   confidence={column.confidence}
                 />
                 <SensitivityBadge sensitivity={column.sensitivity} />
-                <ColumnActionControls
-                  column={column}
-                  action={configFor(column).action}
-                  onActionChange={(action) =>
-                    onActionChange(column.index, action)
-                  }
-                  onOpenSettings={() => onOpenSettings(column.index)}
-                />
+                {showActions && (
+                  <ColumnActionControls
+                    column={column}
+                    action={configFor(column).action}
+                    onActionChange={(action) =>
+                      onActionChange(column.index, action)
+                    }
+                    onOpenSettings={() => onOpenSettings(column.index)}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -148,9 +152,10 @@ export function PreviewTable({
                 {columns.map((column) => {
                   const value = row?.[column.index]
                   const config = configFor(column)
-                  const removed = config.action === 'remove'
-                  const redacted = config.action === 'redact'
-                  const generalized = config.action === 'generalize'
+                  const removed = showActions && config.action === 'remove'
+                  const redacted = showActions && config.action === 'redact'
+                  const generalized =
+                    showActions && config.action === 'generalize'
                   const display = redacted
                     ? maskValue(column.detected_type, value ?? null, config.redact)
                     : generalized

@@ -1,14 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  DownloadIcon,
-  Loader2Icon,
-  ShieldCheckIcon,
-  SparklesIcon,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { DownloadIcon, Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { ChoiceCard } from "./choice-card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,7 +16,6 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { downloadProcessed } from "@/features/datasets/api";
 import { processStatusQueryOptions } from "@/features/datasets/queries";
-import { cn } from "@/lib/utils";
 
 interface ProcessDialogProps {
   open: boolean;
@@ -30,54 +23,6 @@ interface ProcessDialogProps {
   jobId: string | null;
   onOpenChange: (open: boolean) => void;
   onRetry: () => void;
-}
-
-interface ChoiceCardProps {
-  icon: LucideIcon;
-  title: string;
-  hint: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  busy?: boolean;
-}
-
-function ChoiceCard({
-  icon: Icon,
-  title,
-  hint,
-  onClick,
-  disabled = false,
-  busy = false,
-}: ChoiceCardProps) {
-  return (
-    <button
-      type="button"
-      disabled={disabled || busy}
-      onClick={onClick}
-      className={cn(
-        "flex w-full items-center gap-3 cursor-pointer rounded-lg border border-border p-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/50",
-        (disabled || busy) &&
-          "cursor-not-allowed opacity-60 hover:border-border hover:bg-transparent",
-      )}
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-        {busy ? (
-          <Loader2Icon className="size-4 animate-spin" />
-        ) : (
-          <Icon className="size-4" />
-        )}
-      </span>
-      <span className="min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="text-sm font-medium">{title}</span>
-          {disabled && <Badge variant="secondary">Coming soon</Badge>}
-        </span>
-        <span className="mt-0.5 block text-xs text-muted-foreground">
-          {hint}
-        </span>
-      </span>
-    </button>
-  );
 }
 
 export function ProcessDialog({
@@ -185,18 +130,6 @@ export function ProcessDialog({
                 hint="Download the processed dataset as an Excel file."
                 onClick={handleExport}
                 busy={exporting}
-              />
-              <ChoiceCard
-                icon={ShieldCheckIcon}
-                title="K-anonymization"
-                hint="Coming soon."
-                disabled
-              />
-              <ChoiceCard
-                icon={SparklesIcon}
-                title="Synthetic data generation"
-                hint="Coming soon."
-                disabled
               />
             </div>
             <DialogFooter>

@@ -1,9 +1,11 @@
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRightIcon, Loader2Icon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowLeftIcon, ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { PreviewTable } from "./preview-table";
 import { GeneralizeDialog } from "./generalize-dialog";
+import { MethodChoiceDialog } from "./method-choice-dialog";
 import { ProcessDialog } from "./process-dialog";
 import { RedactDialog } from "./redact-dialog";
 import { Button } from "@/components/ui/button";
@@ -22,14 +24,18 @@ import {
   type RedactConfig,
 } from "@/features/datasets/types";
 
+type PreviewMode = "inspect" | "transform";
+
 interface DatasetPreviewProps {
   id: string;
+  mode: PreviewMode;
 }
 
-export function DatasetPreview({ id }: DatasetPreviewProps) {
+export function DatasetPreview({ id, mode }: DatasetPreviewProps) {
   const dataset = useQuery(datasetQueryOptions(id));
   const [configs, setConfigs] = useState<Record<number, ColumnConfig>>({});
   const [settingsColumn, setSettingsColumn] = useState<number | null>(null);
+  const [choiceOpen, setChoiceOpen] = useState(false);
   const [processOpen, setProcessOpen] = useState(false);
   const [processJobId, setProcessJobId] = useState<string | null>(null);
 
@@ -147,11 +153,25 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{filename}</p>
-          <p className="text-xs text-muted-foreground">
-            {sheet} · {total.toLocaleString()} rows · {columns.length} columns
-          </p>
+        <div className="flex min-w-0 items-center gap-2">
+          {mode === "transform" && (
+            <Button asChild variant="ghost" size="icon-sm" aria-label="Back">
+              <Link
+                to="/datasets/$datasetId"
+                params={{ datasetId: id }}
+                title="Back"
+              >
+                <ArrowLeftIcon className="size-4" />
+              </Link>
+            </Button>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{filename}</p>
+            <p className="text-xs text-muted-foreground">
+              {sheet} · {total.toLocaleString()} rows · {columns.length}{" "}
+              columns
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {isFetchingNextPage && (
@@ -159,24 +179,33 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
               Loading more rows…
             </span>
           )}
-          {processMutation.isError && (
-            <span className="text-xs text-destructive">
-              Could not start processing.
-            </span>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            disabled={processMutation.isPending}
-            onClick={() => processMutation.mutate()}
-          >
-            {processMutation.isPending ? (
-              <Loader2Icon className="size-4 animate-spin" />
-            ) : (
+          {mode === "transform" ? (
+            <>
+              {processMutation.isError && (
+                <span className="text-xs text-destructive">
+                  Could not start processing.
+                </span>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                disabled={processMutation.isPending}
+                onClick={() => processMutation.mutate()}
+              >
+                {processMutation.isPending ? (
+                  <Loader2Icon className="size-4 animate-spin" />
+                ) : (
+                  <ArrowRightIcon className="size-4" />
+                )}
+                Process data
+              </Button>
+            </>
+          ) : (
+            <Button type="button" size="sm" onClick={() => setChoiceOpen(true)}>
+              Next
               <ArrowRightIcon className="size-4" />
-            )}
-            Process data
-          </Button>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -189,9 +218,18 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
         onLoadMore={handleLoadMore}
+        showActions={mode === "transform"}
       />
 
-      {activeColumn && activeConfig && (
+      {mode === "inspect" && (
+        <MethodChoiceDialog
+          open={choiceOpen}
+          datasetId={id}
+          onOpenChange={setChoiceOpen}
+        />
+      )}
+
+      {mode === "transform" && activeColumn && activeConfig && (
         <>
           <RedactDialog
             open={activeConfig.action === "redact"}
@@ -219,7 +257,7 @@ export function DatasetPreview({ id }: DatasetPreviewProps) {
       )}
 
       <ProcessDialog
-        open={processOpen}
+        open={mode === "transform" && processOpen}
         datasetId={id}
         jobId={processJobId}
         onOpenChange={setProcessOpen}
