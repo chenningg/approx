@@ -1,6 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
-import { getDataset, getDatasetRows, getProcessStatus } from './api'
+import { getDataset, getDatasetRows, getProcessStatus, getSyntheticDefaults, getSyntheticStatus } from './api'
 
 export const ROWS_PAGE_SIZE = 200
 
@@ -30,4 +30,17 @@ export const processStatusQueryOptions = (id: string, jobId: string) =>
   queryOptions({
     queryKey: ['datasets', id, 'process', jobId],
     queryFn: () => getProcessStatus(id, jobId),
+  })
+
+export const syntheticDefaultsQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: ['datasets', id, 'synthetic', 'defaults'],
+    queryFn: () => getSyntheticDefaults(id),
+    staleTime: Infinity,
+  })
+
+export const syntheticStatusQueryOptions = (id: string, jobId: string) =>
+  queryOptions({
+    queryKey: ['datasets', id, 'synthetic', jobId],
+    queryFn: () => getSyntheticStatus(id, jobId),
   })

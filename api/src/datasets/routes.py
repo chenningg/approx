@@ -6,8 +6,16 @@ from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from src.auth.deps import AuthUserDep
-from src.datasets import processing, service
-from src.datasets.dtos import DatasetPreview, ProcessRequest, ProcessStatus, RowsPage
+from src.datasets import processing, service, synthetic
+from src.datasets.dtos import (
+    DatasetPreview,
+    ProcessRequest,
+    ProcessStatus,
+    RowsPage,
+    SyntheticDefaults,
+    SyntheticRequest,
+    SyntheticStatus,
+)
 from src.datasets.service import DatasetNotFoundError
 
 datasets_router = APIRouter(prefix="/datasets", tags=["datasets"])
@@ -130,6 +138,88 @@ async def export_processed(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Processed file not found",
+        )
+    path, filename = found
+    return FileResponse(
+        path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=filename,
+    )
+
+
+@datasets_router.get(
+    "/{dataset_id}/synthetic/suggest", response_model=SyntheticDefaults
+)
+async def suggest_synthetic_metadata(
+    dataset_id: UUID, auth_user: AuthUserDep
+) -> SyntheticDefaults:
+    try:
+        meta = await run_in_threadpool(service.get_meta, dataset_id)
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found"
+        ) from exc
+    return SyntheticDefaults.model_validate(synthetic.suggest_metadata(meta))
+
+
+@datasets_router.post("/{dataset_id}/synthetic", response_model=SyntheticStatus)
+async def generate_synthetic(
+    dataset_id: UUID, request: SyntheticRequest, auth_user: AuthUserDep
+) -> SyntheticStatus:
+    if not request.table_name.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Table name is required",
+        )
+    try:
+        meta = await run_in_threadpool(service.get_meta, dataset_id)
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found"
+        ) from exc
+
+    valid = {column["index"] for column in meta["columns"]}
+    unknown = [column.index for column in request.columns if column.index not in valid]
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown column indexes: {unknown}",
+        )
+    if request.primary_key is not None and request.primary_key not in valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown primary key column index: {request.primary_key}",
+        )
+
+    job = synthetic.start_job(dataset_id, meta, request)
+    return SyntheticStatus.model_validate(job)
+
+
+@datasets_router.get(
+    "/{dataset_id}/synthetic/{job_id}", response_model=SyntheticStatus
+)
+async def get_synthetic_status(
+    dataset_id: UUID, job_id: str, auth_user: AuthUserDep
+) -> SyntheticStatus:
+    try:
+        job = await run_in_threadpool(synthetic.get_status, dataset_id, job_id)
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Synthetic generation job not found",
+        ) from exc
+    return SyntheticStatus.model_validate(job)
+
+
+@datasets_router.get("/{dataset_id}/synthetic/{job_id}/export")
+async def export_synthetic(
+    dataset_id: UUID, job_id: str, auth_user: AuthUserDep
+) -> FileResponse:
+    found = await run_in_threadpool(synthetic.export_file, dataset_id, job_id)
+    if found is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Synthetic file not found",
         )
     path, filename = found
     return FileResponse(

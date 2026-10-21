@@ -18,7 +18,11 @@ dependencies = [
     "pydantic-settings>=2.15.0",
     "python-multipart>=0.0.20",
     "redis>=8.1.0",
+    "sdv[excel]>=2.0.0",
     "sqlalchemy[asyncio]>=2.0.54",
+    # Pulled in by SDV (CTGAN); pinned to the CPU index below so the image
+    # does not ship multi-gigabyte CUDA wheels.
+    "torch>=2.14.1",
 ]
 
 [build-system]
@@ -31,5 +35,11 @@ entrypoint = "src.main:app"
 [tool.uv]
 package = false
 
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.uv.sources]
 laya-client = { path = "../laya/sdk/python" }
+torch = { index = "pytorch-cpu" }

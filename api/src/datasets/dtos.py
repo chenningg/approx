@@ -100,3 +100,41 @@ class ProcessStatus(BaseModel):
     export_filename: str | None = None
     output_columns: int | None = None
     output_rows: int | None = None
+
+
+class SyntheticColumnConfig(BaseModel):
+    index: int
+    sdtype: str = Field(min_length=1)
+    pii: bool = False
+
+
+class SyntheticRequest(BaseModel):
+    table_name: str = Field(min_length=1, max_length=63)
+    primary_key: int | None = None
+    num_rows: int = Field(default=100, ge=1, le=1_000_000)
+    columns: list[SyntheticColumnConfig]
+
+
+class SyntheticColumnDefaults(BaseModel):
+    index: int
+    header: str | None
+    sdtype: str
+    pii: bool
+
+
+class SyntheticDefaults(BaseModel):
+    table_name: str
+    suggested_primary_key: int | None
+    default_num_rows: int
+    columns: list[SyntheticColumnDefaults]
+
+
+class SyntheticStatus(BaseModel):
+    job_id: str
+    status: Literal["running", "completed", "failed"]
+    progress: float
+    phase: str
+    total_rows: int
+    error: str | None = None
+    export_filename: str | None = None
+    output_rows: int | None = None

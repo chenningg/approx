@@ -9,6 +9,9 @@ Layout::
         jobs/
             {job_id}.json  # processing job status (survives restarts)
             {job_id}.xlsx  # transformed output written by a completed job
+        synthetic/
+            {job_id}.json  # synthetic generation job status
+            {job_id}.xlsx  # generated output written by a completed job
 """
 
 from __future__ import annotations
@@ -51,6 +54,18 @@ def job_path(dataset_id: UUID | str, job_id: str) -> Path:
 
 def processed_path(dataset_id: UUID | str, job_id: str) -> Path:
     return jobs_dir(dataset_id) / f"{job_id}.xlsx"
+
+
+def synthetic_dir(dataset_id: UUID | str) -> Path:
+    return dataset_dir(dataset_id) / "synthetic"
+
+
+def synthetic_job_path(dataset_id: UUID | str, job_id: str) -> Path:
+    return synthetic_dir(dataset_id) / f"{job_id}.json"
+
+
+def synthetic_output_path(dataset_id: UUID | str, job_id: str) -> Path:
+    return synthetic_dir(dataset_id) / f"{job_id}.xlsx"
 
 
 def exists(dataset_id: UUID | str) -> bool:

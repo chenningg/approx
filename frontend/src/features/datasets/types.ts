@@ -195,3 +195,102 @@ export function defaultColumnConfig(column: ColumnInfo): ColumnConfig {
     generalize: defaultGeneralizeFor(column),
   }
 }
+
+export type SyntheticSdtype =
+  | 'id'
+  | 'numerical'
+  | 'categorical'
+  | 'boolean'
+  | 'datetime'
+  | 'email'
+  | 'first_name'
+  | 'last_name'
+  | 'phone_number'
+  | 'street_address'
+  | 'city'
+  | 'postcode'
+  | 'country_code'
+  | 'credit_card_number'
+  | 'passport_number'
+  | 'ssn'
+  | 'ipv4_address'
+  | 'ipv6_address'
+
+export const SYNTHETIC_SDTYPES: { value: SyntheticSdtype; label: string }[] = [
+  { value: 'categorical', label: 'Categorical' },
+  { value: 'numerical', label: 'Numerical' },
+  { value: 'boolean', label: 'Boolean' },
+  { value: 'datetime', label: 'Date / Time' },
+  { value: 'id', label: 'Identifier' },
+  { value: 'email', label: 'Email' },
+  { value: 'first_name', label: 'First name' },
+  { value: 'last_name', label: 'Last name' },
+  { value: 'phone_number', label: 'Phone number' },
+  { value: 'street_address', label: 'Street address' },
+  { value: 'city', label: 'City' },
+  { value: 'postcode', label: 'Postcode' },
+  { value: 'country_code', label: 'Country code' },
+  { value: 'credit_card_number', label: 'Credit card number' },
+  { value: 'passport_number', label: 'Passport number' },
+  { value: 'ssn', label: 'SSN' },
+  { value: 'ipv4_address', label: 'IPv4 address' },
+  { value: 'ipv6_address', label: 'IPv6 address' },
+]
+
+export const PII_SDTYPES: SyntheticSdtype[] = [
+  'email',
+  'first_name',
+  'last_name',
+  'phone_number',
+  'street_address',
+  'city',
+  'postcode',
+  'country_code',
+  'credit_card_number',
+  'passport_number',
+  'ssn',
+  'ipv4_address',
+  'ipv6_address',
+]
+
+export function supportsPii(sdtype: SyntheticSdtype): boolean {
+  return PII_SDTYPES.includes(sdtype)
+}
+
+export interface SyntheticColumnDefaults {
+  index: number
+  header: string
+  sdtype: SyntheticSdtype
+  pii: boolean
+}
+
+export interface SyntheticDefaults {
+  table_name: string
+  suggested_primary_key: number | null
+  default_num_rows: number
+  columns: SyntheticColumnDefaults[]
+}
+
+export interface SyntheticColumnConfig {
+  index: number
+  sdtype: SyntheticSdtype
+  pii: boolean
+}
+
+export interface SyntheticRequest {
+  table_name: string
+  primary_key: number | null
+  num_rows: number
+  columns: SyntheticColumnConfig[]
+}
+
+export interface SyntheticStatus {
+  job_id: string
+  status: 'running' | 'completed' | 'failed'
+  progress: number
+  phase: string
+  total_rows: number
+  error: string | null
+  export_filename: string | null
+  output_rows: number | null
+}

@@ -17,6 +17,7 @@ import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as MarketingIndexRouteImport } from './routes/_marketing/index'
 import { Route as AppDatasetsDatasetIdRouteRouteImport } from './routes/_app/datasets/$datasetId/route'
 import { Route as AppDatasetsDatasetIdIndexRouteImport } from './routes/_app/datasets/$datasetId/index'
+import { Route as AppDatasetsDatasetIdSyntheticRouteImport } from './routes/_app/datasets/$datasetId/synthetic'
 import { Route as AppDatasetsDatasetIdTransformRouteImport } from './routes/_app/datasets/$datasetId/transform'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -58,6 +59,12 @@ const AppDatasetsDatasetIdIndexRoute =
     path: '/',
     getParentRoute: () => AppDatasetsDatasetIdRouteRoute,
   } as any)
+const AppDatasetsDatasetIdSyntheticRoute =
+  AppDatasetsDatasetIdSyntheticRouteImport.update({
+    id: '/synthetic',
+    path: '/synthetic',
+    getParentRoute: () => AppDatasetsDatasetIdRouteRoute,
+  } as any)
 const AppDatasetsDatasetIdTransformRoute =
   AppDatasetsDatasetIdTransformRouteImport.update({
     id: '/transform',
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/upload': typeof AppUploadRoute
   '/login': typeof AuthLoginRoute
   '/datasets/$datasetId': typeof AppDatasetsDatasetIdRouteRouteWithChildren
+  '/datasets/$datasetId/synthetic': typeof AppDatasetsDatasetIdSyntheticRoute
   '/datasets/$datasetId/transform': typeof AppDatasetsDatasetIdTransformRoute
   '/datasets/$datasetId/': typeof AppDatasetsDatasetIdIndexRoute
 }
@@ -77,6 +85,7 @@ export interface FileRoutesByTo {
   '/': typeof MarketingIndexRoute
   '/upload': typeof AppUploadRoute
   '/login': typeof AuthLoginRoute
+  '/datasets/$datasetId/synthetic': typeof AppDatasetsDatasetIdSyntheticRoute
   '/datasets/$datasetId/transform': typeof AppDatasetsDatasetIdTransformRoute
   '/datasets/$datasetId': typeof AppDatasetsDatasetIdIndexRoute
 }
@@ -89,6 +98,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_marketing/': typeof MarketingIndexRoute
   '/_app/datasets/$datasetId': typeof AppDatasetsDatasetIdRouteRouteWithChildren
+  '/_app/datasets/$datasetId/synthetic': typeof AppDatasetsDatasetIdSyntheticRoute
   '/_app/datasets/$datasetId/transform': typeof AppDatasetsDatasetIdTransformRoute
   '/_app/datasets/$datasetId/': typeof AppDatasetsDatasetIdIndexRoute
 }
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/upload'
     | '/login'
     | '/datasets/$datasetId'
+    | '/datasets/$datasetId/synthetic'
     | '/datasets/$datasetId/transform'
     | '/datasets/$datasetId/'
   fileRoutesByTo: FileRoutesByTo
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/'
     | '/upload'
     | '/login'
+    | '/datasets/$datasetId/synthetic'
     | '/datasets/$datasetId/transform'
     | '/datasets/$datasetId'
   id:
@@ -117,6 +129,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_marketing/'
     | '/_app/datasets/$datasetId'
+    | '/_app/datasets/$datasetId/synthetic'
     | '/_app/datasets/$datasetId/transform'
     | '/_app/datasets/$datasetId/'
   fileRoutesById: FileRoutesById
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDatasetsDatasetIdIndexRouteImport
       parentRoute: typeof AppDatasetsDatasetIdRouteRoute
     }
+    '/_app/datasets/$datasetId/synthetic': {
+      id: '/_app/datasets/$datasetId/synthetic'
+      path: '/synthetic'
+      fullPath: '/datasets/$datasetId/synthetic'
+      preLoaderRoute: typeof AppDatasetsDatasetIdSyntheticRouteImport
+      parentRoute: typeof AppDatasetsDatasetIdRouteRoute
+    }
     '/_app/datasets/$datasetId/transform': {
       id: '/_app/datasets/$datasetId/transform'
       path: '/transform'
@@ -196,12 +216,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppDatasetsDatasetIdRouteRouteChildren {
+  AppDatasetsDatasetIdSyntheticRoute: typeof AppDatasetsDatasetIdSyntheticRoute
   AppDatasetsDatasetIdTransformRoute: typeof AppDatasetsDatasetIdTransformRoute
   AppDatasetsDatasetIdIndexRoute: typeof AppDatasetsDatasetIdIndexRoute
 }
 
 const AppDatasetsDatasetIdRouteRouteChildren: AppDatasetsDatasetIdRouteRouteChildren =
   {
+    AppDatasetsDatasetIdSyntheticRoute: AppDatasetsDatasetIdSyntheticRoute,
     AppDatasetsDatasetIdTransformRoute: AppDatasetsDatasetIdTransformRoute,
     AppDatasetsDatasetIdIndexRoute: AppDatasetsDatasetIdIndexRoute,
   }

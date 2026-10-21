@@ -38,6 +38,14 @@ export function MethodChoiceDialog({
     });
   };
 
+  const handleSynthetic = () => {
+    onOpenChange(false);
+    void navigate({
+      to: "/datasets/$datasetId/synthetic",
+      params: { datasetId },
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -63,8 +71,8 @@ export function MethodChoiceDialog({
           <ChoiceCard
             icon={SparklesIcon}
             title="Synthetic data generation"
-            hint="Coming soon."
-            disabled
+            hint="Train a model on this data and export brand-new, privacy-safe rows."
+            onClick={handleSynthetic}
           />
         </div>
         <DialogFooter>

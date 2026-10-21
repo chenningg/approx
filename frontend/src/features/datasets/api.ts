@@ -5,6 +5,9 @@ import type {
   DatasetPreview,
   ProcessStatus,
   RowsPage,
+  SyntheticDefaults,
+  SyntheticRequest,
+  SyntheticStatus,
 } from './types'
 
 export async function uploadDataset(file: File): Promise<DatasetPreview> {
@@ -137,6 +140,97 @@ export async function downloadProcessed(
   if (!response.ok) {
     throw new Error(
       `Failed to download the processed file (status ${response.status})`,
+    )
+  }
+
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+async function readDetail(response: Response): Promise<string | null> {
+  const error = (await response.json().catch(() => null)) as {
+    detail?: string
+  } | null
+  return error?.detail ?? null
+}
+
+export async function getSyntheticDefaults(
+  id: string,
+): Promise<SyntheticDefaults> {
+  const response = await fetch(
+    `${config.apiBaseUrl}/datasets/${id}/synthetic/suggest`,
+    { credentials: 'include' },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      (await readDetail(response)) ??
+        `Failed to load synthetic settings (status ${response.status})`,
+    )
+  }
+
+  return (await response.json()) as SyntheticDefaults
+}
+
+export async function startSynthetic(
+  id: string,
+  request: SyntheticRequest,
+): Promise<SyntheticStatus> {
+  const response = await fetch(`${config.apiBaseUrl}/datasets/${id}/synthetic`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      (await readDetail(response)) ??
+        `Synthetic generation failed to start (status ${response.status})`,
+    )
+  }
+
+  return (await response.json()) as SyntheticStatus
+}
+
+export async function getSyntheticStatus(
+  id: string,
+  jobId: string,
+): Promise<SyntheticStatus> {
+  const response = await fetch(
+    `${config.apiBaseUrl}/datasets/${id}/synthetic/${jobId}`,
+    { credentials: 'include' },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load synthetic status (status ${response.status})`,
+    )
+  }
+
+  return (await response.json()) as SyntheticStatus
+}
+
+export async function downloadSynthetic(
+  id: string,
+  jobId: string,
+  filename: string,
+): Promise<void> {
+  const response = await fetch(
+    `${config.apiBaseUrl}/datasets/${id}/synthetic/${jobId}/export`,
+    { credentials: 'include' },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download the synthetic file (status ${response.status})`,
     )
   }
 
