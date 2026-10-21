@@ -60,9 +60,28 @@ export function MetadataEditor({
 
   const handleSdtypeChange = (index: number, sdtype: SyntheticSdtype) => {
     const current = form.columns[index];
-    setColumn(index, {
-      sdtype,
-      pii: supportsPii(sdtype) ? (current?.pii ?? false) : false,
+    const pii = supportsPii(sdtype) ? (current?.pii ?? false) : false;
+    onChange({
+      ...form,
+      // A primary key must stay an identifier, so changing its type away from
+      // Identifier releases the key selection instead of leaving stale state.
+      primaryKey:
+        form.primaryKey === index && sdtype !== "id" ? null : form.primaryKey,
+      columns: { ...form.columns, [index]: { sdtype, pii } },
+    });
+  };
+
+  const handlePrimaryKeyChange = (value: string) => {
+    if (value === "none") {
+      onChange({ ...form, primaryKey: null });
+      return;
+    }
+
+    const index = Number(value);
+    onChange({
+      ...form,
+      primaryKey: index,
+      columns: { ...form.columns, [index]: { sdtype: "id", pii: false } },
     });
   };
 
@@ -104,16 +123,10 @@ export function MetadataEditor({
           </Label>
           <Select
             value={form.primaryKey === null ? "none" : String(form.primaryKey)}
-            onValueChange={(value) =>
-              onChange({
-                ...form,
-                primaryKey: value === "none" ? null : Number(value),
-              })
-            }
+            onValueChange={handlePrimaryKeyChange}
           >
             <SelectTrigger
               id="synthetic-primary-key"
-              size="sm"
               className="w-full"
             >
               <SelectValue placeholder="None" />
@@ -145,8 +158,9 @@ export function MetadataEditor({
                 sdtype: column.sdtype,
                 pii: column.pii,
               };
-              const piiAvailable = supportsPii(value.sdtype);
+              const piiSupported = supportsPii(value.sdtype);
               const isPrimaryKey = form.primaryKey === column.index;
+              const piiActive = piiSupported && !isPrimaryKey && value.pii;
               return (
                 <tr
                   key={column.index}
@@ -179,8 +193,8 @@ export function MetadataEditor({
                       <input
                         type="checkbox"
                         className="size-4 accent-primary disabled:opacity-40"
-                        checked={piiAvailable && value.pii}
-                        disabled={!piiAvailable || isPrimaryKey}
+                        checked={piiActive}
+                        disabled={!piiSupported || isPrimaryKey}
                         onChange={(event) =>
                           setColumn(column.index, {
                             ...value,
@@ -191,7 +205,7 @@ export function MetadataEditor({
                       <span className="text-muted-foreground">
                         {isPrimaryKey
                           ? "Generated IDs"
-                          : piiAvailable
+                          : piiSupported
                             ? "Replace values"
                             : "—"}
                       </span>
