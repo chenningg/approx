@@ -206,7 +206,7 @@ export function MetadataEditor({
               <th className="px-3 py-2 font-medium">Data type</th>
               <th className="px-3 py-2 font-medium">Anonymize</th>
               <th
-                className="px-3 py-2 font-medium"
+                className="px-3 py-2 font-medium whitespace-nowrap"
                 title="Optional: keep the generated values inside this range"
               >
                 Allowed range
@@ -275,7 +275,7 @@ export function MetadataEditor({
                       </span>
                     </label>
                   </td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-1.5 min-w-[16rem] max-w-[18rem]">
                     {rangeSupported ? (
                       <div className="flex items-center gap-1.5">
                         <Input
@@ -290,7 +290,7 @@ export function MetadataEditor({
                               minValue: event.target.value,
                             })
                           }
-                          className="h-7 w-24 text-xs tabular-nums"
+                          className="h-7! w-[7.5rem] text-xs! tabular-nums"
                         />
                         <span className="text-muted-foreground">–</span>
                         <Input
@@ -305,7 +305,7 @@ export function MetadataEditor({
                               maxValue: event.target.value,
                             })
                           }
-                          className="h-7 w-24 text-xs tabular-nums"
+                          className="h-7! w-[7.5rem] text-xs! tabular-nums"
                         />
                       </div>
                     ) : (
