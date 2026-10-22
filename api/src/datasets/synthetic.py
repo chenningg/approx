@@ -43,6 +43,8 @@ _SDTYPE_MAP: dict[str, tuple[str, bool]] = {
     "DOB": ("datetime", False),
     "DATE": ("datetime", False),
     "AGE": ("numerical", False),
+    "NUMERIC": ("numerical", False),
+    "TEXT": ("text", True),
     "GENDER": ("categorical", False),
     "TITLE": ("categorical", False),
     "UNKNOWN": ("categorical", False),
@@ -357,6 +359,11 @@ def _build_metadata(meta: dict[str, Any], request: SyntheticRequest) -> Any:
             kwargs["datetime_format"] = _DATE_FORMAT
         if sdtype in _PII_SDTYPES:
             kwargs["pii"] = pii
+        if sdtype == "text":
+            # SDV defaults text to pii=True (generate new sentences); passing
+            # pii=False would reuse the original values verbatim, so never let
+            # the form disable it.
+            kwargs["pii"] = True
         metadata.add_column(
             column_name=name, sdtype=sdtype, table_name=request.table_name, **kwargs
         )

@@ -52,6 +52,26 @@ DATE_FORMATS = (
     "%Y-%m-%d %H:%M:%S",
 )
 
+_CURRENCY_CHARS = "$€£¥¤ "
+_NUMERIC_WITH_DECIMAL = re.compile(r"^-?\d+(?:\.\d+)?$")
+_NUMERIC_WITH_THOUSANDS = re.compile(r"^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$")
+
+
+def _clean_candidate(value: str) -> str:
+    candidate = value.strip().rstrip("%").replace(" ", "").strip()
+    return candidate.lstrip(_CURRENCY_CHARS).rstrip(_CURRENCY_CHARS)
+
+
+def parse_number(value: str) -> float | None:
+    """Parse a numeric cell (plain, thousands-separated, %- or currency-wrapped)."""
+    candidate = _clean_candidate(value)
+    if _NUMERIC_WITH_DECIMAL.match(candidate) or _NUMERIC_WITH_THOUSANDS.match(
+        candidate
+    ):
+        return float(candidate.replace(",", ""))
+    return None
+
+
 GENDER_VALUES = {
     "m",
     "f",
@@ -75,7 +95,16 @@ GENDER_VALUES = {
 # header forms; ``_is_age_header`` additionally matches a standalone "age" token.
 _AGE_MAX = 150
 _AGE_HEADERS = frozenset(
-    {"age", "ageyears", "yearsofage", "agegroup", "ageband", "agerange"}
+    {
+        "age",
+        "ageyears",
+        "yearsofage",
+        "agegroup",
+        "ageband",
+        "agerange",
+        "yearold",
+        "yearsold",
+    }
 )
 
 ADDRESS_RE = re.compile(
@@ -119,7 +148,7 @@ HEADER_HINTS: tuple[tuple[tuple[str, ...], DetectedType], ...] = (
         "PHONE",
     ),
     (("email", "mail"), "EMAIL"),
-    (("url", "website", "web", "link", "domain"), "URL"),
+    (("url", "website", "webpage", "web", "link", "domain"), "URL"),
     (("ipaddress", "ipaddr"), "IP_ADDRESS"),
     (("dob", "dateofbirth", "birthdate", "birthday"), "DOB"),
     (
@@ -134,6 +163,7 @@ HEADER_HINTS: tuple[tuple[tuple[str, ...], DetectedType], ...] = (
             "postal",
             "postcode",
             "zip",
+            "zipcode",
             "city",
             "town",
             "country",
@@ -147,16 +177,60 @@ HEADER_HINTS: tuple[tuple[tuple[str, ...], DetectedType], ...] = (
 )
 
 
+# Headers that name an identifier rather than a measurement. A numeric column
+# ending in one of these (Order, Bank Account, Serial Number) is a code, so the
+# value shape must not turn it into a measured quantity.
+_IDENTIFIER_HEADER_TOKENS = frozenset(
+    {
+        "id",
+        "no",
+        "num",
+        "number",
+        "code",
+        "ref",
+        "reference",
+        "serial",
+        "account",
+        "order",
+    }
+)
+
+
+def _header_tokens(header: str | None) -> list[str]:
+    """Lowercase words in a header, splitting camelCase and punctuation."""
+    if not header:
+        return []
+    spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", str(header))
+    return [
+        token for token in re.split(r"[^A-Za-z0-9]+", spaced.lower()) if token
+    ]
+
+
+def _header_candidates(header: str | None) -> set[str]:
+    """Whole-word forms of a header: tokens, adjacent joins, and the full text.
+
+    Matching candidates instead of substrings keeps short terms (``tin``,
+    ``fin``) from firing on unrelated words such as ``Rating`` or ``Finance``.
+    """
+    tokens = _header_tokens(header)
+    if not tokens:
+        return set()
+    candidates = set(tokens)
+    candidates.add("".join(tokens))
+    for size in (2, 3):
+        for index in range(len(tokens) - size + 1):
+            candidates.add("".join(tokens[index : index + size]))
+    return candidates
+
+
 def header_hint(header: str | None) -> DetectedType | None:
     if not header:
         return None
-    normalized = re.sub(r"[^a-z0-9]", "", str(header).lower())
-    if not normalized:
-        return None
     if _is_age_header(header):
         return "AGE"
+    candidates = _header_candidates(header)
     for keys, detected_type in HEADER_HINTS:
-        if any(key in normalized for key in keys):
+        if any(key in candidates for key in keys):
             return detected_type
     return None
 
@@ -166,12 +240,14 @@ def _is_nric(value: str) -> bool:
 
 
 def _is_age_header(header: str | None) -> bool:
-    if not header:
-        return False
-    text = str(header).lower()
-    if re.sub(r"[^a-z0-9]", "", text) in _AGE_HEADERS:
-        return True
-    return "age" in re.split(r"[^a-z0-9]+", text)
+    candidates = _header_candidates(header)
+    return bool(candidates & _AGE_HEADERS) or "age" in candidates
+
+
+def _is_identifier_header(header: str | None) -> bool:
+    """Whether the header names an identifier rather than a measurement."""
+    tokens = _header_tokens(header)
+    return bool(tokens) and tokens[-1] in _IDENTIFIER_HEADER_TOKENS
 
 
 def _is_age(value: str) -> bool:
@@ -241,6 +317,24 @@ def _is_date(value: str) -> bool:
     return False
 
 
+def is_binnable(value: str) -> bool:
+    """Whether a value can be binned into a range (numeric or date-shaped)."""
+    return parse_number(value) is not None or _is_date(value)
+
+
+def _is_numeric(value: str) -> bool:
+    return parse_number(value) is not None
+
+
+def is_free_text(value: str) -> bool:
+    """Whether a value reads as prose rather than a label or a code."""
+    candidate = value.strip()
+    return (
+        len(candidate) >= FREE_TEXT_MIN_LEN
+        or len(candidate.split()) >= FREE_TEXT_MIN_WORDS
+    )
+
+
 def _is_gender(value: str) -> bool:
     return re.sub(r"[^a-z]", "", value.lower()) in GENDER_VALUES
 
@@ -284,8 +378,11 @@ def _is_name(value: str) -> bool:
 
 # Order matters: more specific shapes run first so broad checks can't win.
 # ``DOB``/``DATE`` precede ``PHONE`` because date-shaped values (1990-01-02)
-# also look like dashed phone numbers. ``NAME`` stays last since it is the
-# broadest, and is additionally gated on cardinality (below).
+# also look like dashed phone numbers. ``NUMERIC`` and ``TEXT`` sit after
+# the identifier shapes (a bare phone number is also a number) and before
+# ``ADDRESS`` (a six-digit number also looks like a postal code, and prose may
+# mention streets). ``NAME`` stays last since it is the broadest, and is
+# additionally gated on cardinality (below).
 _VALUE_CHECKS: tuple[
     tuple[DetectedType, str], ...
 ] = (
@@ -299,6 +396,8 @@ _VALUE_CHECKS: tuple[
     ("URL", "_is_url"),
     ("IP_ADDRESS", "_is_ip"),
     ("GENDER", "_is_gender"),
+    ("NUMERIC", "_is_numeric"),
+    ("TEXT", "is_free_text"),
     ("ADDRESS", "_is_address"),
     ("PASSPORT", "_is_passport"),
     ("DRIVING_LICENSE", "_is_driving_license"),
@@ -318,6 +417,12 @@ _NAME_MIN_UNIQUE = 12
 _NAME_MIN_RATIO = 0.5
 
 _VALUE_THRESHOLD = 0.8
+
+# Prose is a looser claim than a structural type: half a column of sentences is
+# enough to prefer generating new text over memorizing the originals.
+FREE_TEXT_MIN_LEN = 60
+FREE_TEXT_MIN_WORDS = 6
+FREE_TEXT_RATIO = 0.5
 
 # Structural types whose checker can vouch for a value on its own. Used to
 # sanity-check model-proposed types against the actual values.
@@ -393,6 +498,10 @@ _TYPE_SENSITIVITY: dict[DetectedType, Sensitivity] = {
     "GENDER": "INDIRECT_PII",
     "ADDRESS": "INDIRECT_PII",
     "TITLE": "INDIRECT_PII",
+    # Shape-only types. Sensitivity is settled by policy (header) or Laya, so
+    # a numeric age column without an age header can still become INDIRECT_PII.
+    "NUMERIC": "UNKNOWN",
+    "TEXT": "UNKNOWN",
     "UNKNOWN": "UNKNOWN",
 }
 
@@ -459,10 +568,8 @@ _INDIRECT_HEADERS = (
 
 
 def _contains_any(header: str | None, terms: tuple[str, ...]) -> bool:
-    if not header:
-        return False
-    normalized = re.sub(r"[^a-z0-9]", "", str(header).lower())
-    return any(term in normalized for term in terms)
+    candidates = _header_candidates(header)
+    return any(term in candidates for term in terms)
 
 
 def classify_sensitivity(header: str | None, detected_type: DetectedType) -> Sensitivity:
@@ -499,12 +606,14 @@ def detect_column(
             unique_samples,
         )
 
+    identifier_header = _is_identifier_header(header)
     checkers = [
         (detected_type, checker_name)
         for detected_type, checker_name in _VALUE_CHECKS
         if not (
             detected_type in _HINT_GATED and detected_type != hint
         )
+        and not (detected_type == "NUMERIC" and identifier_header)
         and not (
             detected_type == "NAME"
             and hint != "NAME"
@@ -538,7 +647,10 @@ def detect_column(
     if best_type in ("DOB", "DATE"):
         best_type = hint if hint in ("DOB", "DATE") else "DATE"
 
-    if best_ratio >= _VALUE_THRESHOLD:
+    threshold = (
+        FREE_TEXT_RATIO if best_type == "TEXT" else _VALUE_THRESHOLD
+    )
+    if best_ratio >= threshold:
         confidence = min(0.99, 0.6 + best_ratio * 0.4)
         return (
             best_type,

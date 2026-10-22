@@ -18,21 +18,24 @@ there is nothing to group and nothing Laya could judge.
 
 from __future__ import annotations
 
-import re
-from datetime import datetime
+from src.datasets.detection import (
+    FREE_TEXT_RATIO,
+    is_binnable,
+    is_free_text,
+    parse_number,
+)
 
-from src.datasets.detection import DATE_FORMATS
-
-# Types whose values bin or generalize into categories: ranges for AGE,
-# year bands for DOB/DATE, hierarchy for ADDRESS, job-family groups for TITLE,
-# value groups for GENDER.
+# Types whose values bin or generalize into categories: ranges for AGE and
+# NUMERIC, year bands for DOB/DATE, hierarchy for ADDRESS, job-family groups
+# for TITLE, value groups for GENDER.
 _CATEGORIZABLE_TYPES = frozenset(
-    {"AGE", "TITLE", "GENDER", "DOB", "DATE", "ADDRESS"}
+    {"AGE", "NUMERIC", "TITLE", "GENDER", "DOB", "DATE", "ADDRESS"}
 )
 
 # Direct identifiers: one distinct value per person, so grouping them is
-# masking, not categorization.
-_IDENTIFIER_TYPES = frozenset(
+# masking, not categorization. Free text is prose, so it cannot be grouped
+# into meaningful equivalence classes either.
+_NON_CATEGORIZABLE_TYPES = frozenset(
     {
         "NRIC",
         "PASSPORT",
@@ -43,6 +46,7 @@ _IDENTIFIER_TYPES = frozenset(
         "URL",
         "IP_ADDRESS",
         "NAME",
+        "TEXT",
     }
 )
 
@@ -55,61 +59,23 @@ _GROUPABLE_DISTINCT_MAX = 20
 # k>=2 equivalence classes actually exist. An all-unique column needs masking
 # even when there are few distinct values.
 _GROUPABLE_RATIO = 0.5
-# Share of samples longer than this that marks a column as free text, which
-# cannot be grouped into meaningful categories even when cardinality is low.
-_FREE_TEXT_LEN = 60
-_FREE_TEXT_RATIO = 0.5
-
-_CURRENCY_CHARS = "$€£¥¤ "
-_NUMERIC_WITH_DECIMAL = re.compile(r"^-?\d+(?:\.\d+)?$")
-_NUMERIC_WITH_THOUSANDS = re.compile(r"^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$")
-
-
-def _clean_candidate(value: str) -> str:
-    candidate = value.strip().rstrip("%").replace(" ", "").strip()
-    return candidate.lstrip(_CURRENCY_CHARS).rstrip(_CURRENCY_CHARS)
-
-
-def parse_number(value: str) -> float | None:
-    """Parse a numeric cell (plain, thousands-separated, %- or currency-wrapped)."""
-    candidate = _clean_candidate(value)
-    if _NUMERIC_WITH_DECIMAL.match(candidate) or _NUMERIC_WITH_THOUSANDS.match(
-        candidate
-    ):
-        return float(candidate.replace(",", ""))
-    return None
-
-
-def _is_binnable(value: str) -> bool:
-    if parse_number(value) is not None:
-        return True
-    candidate = _clean_candidate(value)
-    if not candidate:
-        return False
-    for fmt in DATE_FORMATS:
-        try:
-            datetime.strptime(candidate, fmt)
-            return True
-        except ValueError:
-            continue
-    return False
 
 
 def is_categorizable(detected_type: str, samples: list[str]) -> bool:
     """Whether this column's values can be grouped/binned for K-anonymity."""
     if detected_type in _CATEGORIZABLE_TYPES:
         return True
-    if detected_type in _IDENTIFIER_TYPES:
+    if detected_type in _NON_CATEGORIZABLE_TYPES:
         return False
     if not samples:
         return False
 
-    binnable = sum(1 for value in samples if _is_binnable(value)) / len(samples)
+    binnable = sum(1 for value in samples if is_binnable(value)) / len(samples)
     if binnable >= _BINNABLE_RATIO:
         return True
 
-    long_text = sum(1 for value in samples if len(value) > _FREE_TEXT_LEN)
-    if long_text / len(samples) >= _FREE_TEXT_RATIO:
+    free_text = sum(1 for value in samples if is_free_text(value))
+    if free_text / len(samples) >= FREE_TEXT_RATIO:
         return False
 
     distinct = len(set(samples))

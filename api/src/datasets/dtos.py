@@ -19,6 +19,8 @@ DetectedType = Literal[
     "TITLE",
     "ADDRESS",
     "NAME",
+    "NUMERIC",
+    "TEXT",
     "UNKNOWN",
 ]
 

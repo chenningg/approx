@@ -16,6 +16,8 @@ export type DetectedType =
   | 'TITLE'
   | 'ADDRESS'
   | 'NAME'
+  | 'NUMERIC'
+  | 'TEXT'
   | 'UNKNOWN'
 
 export type Sensitivity =
@@ -79,7 +81,7 @@ export const COLUMN_ACTIONS: { value: ColumnAction; label: string }[] = [
   { value: 'generalize', label: 'Generalize' },
 ]
 
-const GENERALIZE_TYPES: DetectedType[] = ['AGE', 'DOB', 'DATE']
+const GENERALIZE_TYPES: DetectedType[] = ['AGE', 'NUMERIC', 'DOB', 'DATE']
 const NUMERIC_SAMPLE_RATIO = 0.6
 
 function isNumericSample(value: string): boolean {
@@ -202,6 +204,7 @@ export type SyntheticSdtype =
   | 'id'
   | 'numerical'
   | 'categorical'
+  | 'text'
   | 'boolean'
   | 'datetime'
   | 'email'
@@ -221,6 +224,7 @@ export type SyntheticSdtype =
 export const SYNTHETIC_SDTYPES: { value: SyntheticSdtype; label: string }[] = [
   { value: 'categorical', label: 'Categorical' },
   { value: 'numerical', label: 'Numerical' },
+  { value: 'text', label: 'Text' },
   { value: 'boolean', label: 'Boolean' },
   { value: 'datetime', label: 'Date / Time' },
   { value: 'id', label: 'Identifier' },

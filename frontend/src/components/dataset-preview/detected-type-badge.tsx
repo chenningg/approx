@@ -63,6 +63,14 @@ const STYLES: Record<DetectedType, { label: string; className: string }> = {
     label: 'Name',
     className: 'border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400',
   },
+  NUMERIC: {
+    label: 'Number',
+    className: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
+  },
+  TEXT: {
+    label: 'Text',
+    className: 'border-stone-500/30 bg-stone-500/10 text-stone-300',
+  },
   UNKNOWN: {
     label: 'Not detected',
     className: 'border-border bg-muted text-muted-foreground',
