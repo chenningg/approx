@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid7
@@ -77,6 +79,14 @@ _PII_SDTYPES = {
 
 _DATE_FORMAT = "%Y-%m-%d"
 
+#: Sdtypes whose generated values can be constrained to a range.
+_BOUNDED_SDTYPES = {"numerical", "datetime"}
+
+#: How many extra sampling rounds may run while looking for rows that fall
+#: inside the requested bounds. The shortfall is filled with clipped rows
+#: afterwards, so the requested row count is always honoured.
+_MAX_RESAMPLE_ATTEMPTS = 5
+
 
 def _column_names(meta: dict[str, Any]) -> dict[int, str]:
     """Resolve unique, non-empty column names for SDV metadata."""
@@ -101,6 +111,85 @@ def _table_name(meta: dict[str, Any]) -> str:
     return name[:63] or "table"
 
 
+def _format_bound(value: Any) -> str | None:
+    """Render a detected bound as the string the form sends back."""
+    if value is None:
+        return None
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _detected_bounds(column: dict[str, Any], sdtype: str) -> tuple[str | None, str | None]:
+    """Observed range of a column, used to pre-fill the allowed range."""
+    if sdtype == "numerical":
+        return (
+            _format_bound(column.get("numeric_min")),
+            _format_bound(column.get("numeric_max")),
+        )
+    if sdtype == "datetime":
+        return (
+            _format_bound(column.get("datetime_min")),
+            _format_bound(column.get("datetime_max")),
+        )
+    return None, None
+
+
+def _parse_bound(text: str, sdtype: str, label: str, index: int) -> Any:
+    """Parse one bound, raising ValueError with a client-facing message."""
+    if sdtype == "numerical":
+        number = actions.parse_number(text)
+        if number is None:
+            raise ValueError(
+                f"Column {index}: {label} '{text}' is not a number."
+            )
+        return number
+    try:
+        return datetime.strptime(text, _DATE_FORMAT)
+    except ValueError as exc:
+        raise ValueError(
+            f"Column {index}: {label} '{text}' is not a YYYY-MM-DD date."
+        ) from exc
+
+
+def resolve_bounds(request: SyntheticRequest) -> dict[int, tuple[Any, Any]]:
+    """Validate the requested ranges and resolve them to comparable values.
+
+    Returns a mapping of column index to its (min, max) pair; either side may
+    be None when the user left that end open.
+    """
+    bounds: dict[int, tuple[Any, Any]] = {}
+    for config in request.columns:
+        index = config.index
+        low_text = (config.min_value or "").strip()
+        high_text = (config.max_value or "").strip()
+        if not low_text and not high_text:
+            continue
+        if request.primary_key == index:
+            raise ValueError(
+                f"Column {index}: the primary key is generated as an id and "
+                "cannot have a range."
+            )
+        sdtype = config.sdtype.strip()
+        if sdtype not in _BOUNDED_SDTYPES:
+            raise ValueError(
+                f"Column {index}: ranges are only supported for numerical "
+                "and datetime columns."
+            )
+        low = (
+            _parse_bound(low_text, sdtype, "minimum", index) if low_text else None
+        )
+        high = (
+            _parse_bound(high_text, sdtype, "maximum", index) if high_text else None
+        )
+        if low is not None and high is not None and low > high:
+            raise ValueError(
+                f"Column {index}: the minimum must not exceed the maximum."
+            )
+        bounds[index] = (low, high)
+    return bounds
+
+
 def suggest_metadata(meta: dict[str, Any]) -> dict[str, Any]:
     """Build the pre-filled metadata form for a dataset."""
     names = _column_names(meta)
@@ -112,12 +201,15 @@ def suggest_metadata(meta: dict[str, Any]) -> dict[str, Any]:
         )
         if suggested_primary_key is None and sdtype == "id":
             suggested_primary_key = column["index"]
+        min_value, max_value = _detected_bounds(column, sdtype)
         columns.append(
             {
                 "index": column["index"],
                 "header": names[column["index"]],
                 "sdtype": sdtype,
                 "pii": pii,
+                "min_value": min_value,
+                "max_value": max_value,
             }
         )
     return {
@@ -278,6 +370,166 @@ def _build_metadata(meta: dict[str, Any], request: SyntheticRequest) -> Any:
     return metadata
 
 
+def _integer_columns(data: Any) -> set[str]:
+    """Names of the numerical columns whose source values are whole numbers."""
+    import pandas as pd
+
+    names: set[str] = set()
+    for name in data.columns:
+        values = pd.to_numeric(data[name], errors="coerce").dropna()
+        if len(values) and bool((values % 1 == 0).all()):
+            names.add(name)
+    return names
+
+
+def _effective_bounds(
+    bounds: dict[int, tuple[Any, Any]], names: dict[int, str], integers: set[str]
+) -> dict[int, tuple[Any, Any]]:
+    """Tighten the bounds of whole-number columns to whole numbers."""
+    effective: dict[int, tuple[Any, Any]] = {}
+    for index, (low, high) in bounds.items():
+        is_date = isinstance(low, datetime) or isinstance(high, datetime)
+        if names[index] in integers and not is_date:
+            new_low = math.ceil(low) if low is not None else None
+            new_high = math.floor(high) if high is not None else None
+            if (
+                new_low is None
+                or new_high is None
+                or new_low <= new_high
+            ):
+                low, high = new_low, new_high
+        effective[index] = (low, high)
+    return effective
+
+
+def _to_datetime_series(series: Any) -> Any:
+    import pandas as pd
+
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return series
+    values = pd.to_datetime(series, format=_DATE_FORMAT, errors="coerce")
+    if int(values.notna().sum()) < int(series.notna().sum()):
+        # Not every value is an ISO string (SDV may hand back real datetimes),
+        # so fall back to the general parser when it recovers more values.
+        loose = pd.to_datetime(series, errors="coerce")
+        if int(loose.notna().sum()) > int(values.notna().sum()):
+            return loose
+    return values
+
+
+def _bounds_mask(
+    frame: Any,
+    bounds: dict[int, tuple[Any, Any]],
+    names: dict[int, str],
+) -> Any:
+    """Boolean mask of the rows whose values fall inside every range."""
+    import pandas as pd
+
+    mask = pd.Series(True, index=frame.index)
+    for index, (low, high) in bounds.items():
+        name = names[index]
+        if name not in frame.columns:
+            continue
+        series = frame[name]
+        if isinstance(low, datetime) or isinstance(high, datetime):
+            values = _to_datetime_series(series)
+        else:
+            values = pd.to_numeric(series, errors="coerce")
+        within = pd.Series(True, index=frame.index)
+        if low is not None:
+            within &= values.isna() | (values >= low)
+        if high is not None:
+            within &= values.isna() | (values <= high)
+        mask &= within
+    return mask
+
+
+def _clip_frame(
+    frame: Any,
+    bounds: dict[int, tuple[Any, Any]],
+    names: dict[int, str],
+    integers: set[str],
+) -> Any:
+    """Force every value of the bounded columns inside its range."""
+    import pandas as pd
+
+    clipped = frame.copy()
+    for index, (low, high) in bounds.items():
+        name = names[index]
+        if name not in clipped.columns:
+            continue
+        series = clipped[name]
+        if isinstance(low, datetime) or isinstance(high, datetime):
+            values = _to_datetime_series(series)
+            lower = pd.Timestamp(low) if low is not None else None
+            upper = pd.Timestamp(high) if high is not None else None
+            values = values.clip(lower=lower, upper=upper)
+            if pd.api.types.is_datetime64_any_dtype(series):
+                clipped[name] = values
+            else:
+                clipped[name] = values.dt.strftime(_DATE_FORMAT)
+            continue
+
+        values = pd.to_numeric(series, errors="coerce")
+        if name in integers:
+            values = values.round()
+        values = values.clip(lower=low, upper=high)
+        if name in integers:
+            if bool(values.isna().any()):
+                clipped[name] = values.astype("float64")
+            else:
+                clipped[name] = values.astype("int64")
+        else:
+            clipped[name] = values
+    return clipped
+
+
+def _sample_within_bounds(
+    synthesizer: Any,
+    request: SyntheticRequest,
+    bounds: dict[int, tuple[Any, Any]],
+    names: dict[int, str],
+    integers: set[str],
+    job: dict[str, Any],
+) -> Any:
+    """Sample rows, preferring values that respect the requested ranges.
+
+    Rows outside the ranges are dropped and sampled again; if the budget runs
+    out the shortfall is filled with clipped rows so the requested row count
+    is always met.
+    """
+    import pandas as pd
+
+    target = request.num_rows
+    if not bounds:
+        return synthesizer.sample(num_rows=target)[request.table_name]
+
+    kept: list[Any] = []
+    collected = 0
+    for _ in range(_MAX_RESAMPLE_ATTEMPTS):
+        if collected >= target:
+            break
+        batch = synthesizer.sample(num_rows=target - collected)[
+            request.table_name
+        ]
+        valid = batch[_bounds_mask(batch, bounds, names)]
+        if len(valid):
+            kept.append(valid)
+            collected += len(valid)
+        with _LOCK:
+            job.update(phase="Enforcing bounds", progress=0.8)
+
+    if collected < target:
+        filler = synthesizer.sample(num_rows=target - collected)[
+            request.table_name
+        ]
+        kept.append(filler)
+
+    frame = pd.concat(kept, ignore_index=True) if len(kept) > 1 else kept[0]
+    frame = frame.head(target).reset_index(drop=True)
+    return _clip_frame(frame, bounds, names, integers)
+
+
 def _run_job(
     dataset_id: UUID,
     meta: dict[str, Any],
@@ -303,9 +555,12 @@ def _run_job(
 
         with _LOCK:
             job.update(phase="Generating synthetic data", progress=0.75)
-        synthetic = synthesizer.sample(num_rows=request.num_rows)[
-            request.table_name
-        ]
+        names = _column_names(meta)
+        integers = _integer_columns(data)
+        bounds = _effective_bounds(resolve_bounds(request), names, integers)
+        synthetic = _sample_within_bounds(
+            synthesizer, request, bounds, names, integers, job
+        )
 
         with _LOCK:
             job.update(phase="Writing file", progress=0.9)

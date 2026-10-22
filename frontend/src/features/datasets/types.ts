@@ -34,6 +34,8 @@ export interface ColumnInfo {
   sample_values: string[]
   numeric_min: number | null
   numeric_max: number | null
+  datetime_min: string | null
+  datetime_max: string | null
   default_action: ColumnAction | null
 }
 
@@ -257,11 +259,19 @@ export function supportsPii(sdtype: SyntheticSdtype): boolean {
   return PII_SDTYPES.includes(sdtype)
 }
 
+export const BOUNDED_SDTYPES: SyntheticSdtype[] = ['numerical', 'datetime']
+
+export function supportsRange(sdtype: SyntheticSdtype): boolean {
+  return BOUNDED_SDTYPES.includes(sdtype)
+}
+
 export interface SyntheticColumnDefaults {
   index: number
   header: string
   sdtype: SyntheticSdtype
   pii: boolean
+  min_value: string | null
+  max_value: string | null
 }
 
 export interface SyntheticDefaults {
@@ -275,6 +285,8 @@ export interface SyntheticColumnConfig {
   index: number
   sdtype: SyntheticSdtype
   pii: boolean
+  min_value: string | null
+  max_value: string | null
 }
 
 export interface SyntheticRequest {

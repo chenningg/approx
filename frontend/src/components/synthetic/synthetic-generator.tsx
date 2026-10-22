@@ -49,8 +49,22 @@ function toRequest(form: SyntheticFormState): SyntheticRequest {
       index: Number(index),
       sdtype: column.sdtype,
       pii: supportsPii(column.sdtype) && column.pii,
+      min_value: column.minValue.trim() || null,
+      max_value: column.maxValue.trim() || null,
     })),
   };
+}
+
+function rangesAreValid(form: SyntheticFormState): boolean {
+  return Object.values(form.columns).every((column) => {
+    if (column.sdtype !== "numerical") return true;
+    const min = column.minValue.trim();
+    const max = column.maxValue.trim();
+    if (min && Number.isNaN(Number(min))) return false;
+    if (max && Number.isNaN(Number(max))) return false;
+    if (min && max && Number(min) > Number(max)) return false;
+    return true;
+  });
 }
 
 interface SyntheticWorkspaceProps {
@@ -105,7 +119,8 @@ function SyntheticWorkspace({ id, dataset, defaults }: SyntheticWorkspaceProps) 
     form.tableName.trim().length > 0 &&
     Number.isInteger(form.numRows) &&
     form.numRows >= 1 &&
-    form.numRows <= 1_000_000;
+    form.numRows <= 1_000_000 &&
+    rangesAreValid(form);
 
   const handleGenerate = () => mutation.mutate(toRequest(form));
 
@@ -151,7 +166,12 @@ function SyntheticWorkspace({ id, dataset, defaults }: SyntheticWorkspaceProps) 
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-        <MetadataEditor defaults={defaults} form={form} onChange={setForm} />
+        <MetadataEditor
+          defaults={defaults}
+          form={form}
+          onChange={setForm}
+          columns={dataset.columns}
+        />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border/60">
           <PreviewTable
             columns={dataset.columns}

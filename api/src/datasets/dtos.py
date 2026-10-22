@@ -43,6 +43,12 @@ class ColumnInfo(BaseModel):
     # stored before these fields existed still validate.
     numeric_min: float | None = None
     numeric_max: float | None = None
+    # Date range over the column as ISO strings (None when it holds no ISO
+    # dates); pre-fills the allowed range for datetime columns in synthetic
+    # generation. Optional so datasets stored before this field existed still
+    # validate.
+    datetime_min: str | None = None
+    datetime_max: str | None = None
     # Sensitivity x categorizability default (see src/datasets/actions.py).
     # Optional so datasets stored before this field existed still validate.
     default_action: ColumnAction | None = None
@@ -106,6 +112,11 @@ class SyntheticColumnConfig(BaseModel):
     index: int
     sdtype: str = Field(min_length=1)
     pii: bool = False
+    # Allowed range for the generated values. Strings so the same field
+    # carries numbers and ISO dates; only meaningful for numerical and
+    # datetime columns.
+    min_value: str | None = None
+    max_value: str | None = None
 
 
 class SyntheticRequest(BaseModel):
@@ -120,6 +131,8 @@ class SyntheticColumnDefaults(BaseModel):
     header: str | None
     sdtype: str
     pii: bool
+    min_value: str | None = None
+    max_value: str | None = None
 
 
 class SyntheticDefaults(BaseModel):

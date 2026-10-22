@@ -10,6 +10,8 @@ import {
 import {
   SYNTHETIC_SDTYPES,
   supportsPii,
+  supportsRange,
+  type ColumnInfo,
   type SyntheticDefaults,
   type SyntheticSdtype,
 } from "@/features/datasets/types";
@@ -17,6 +19,8 @@ import {
 export interface SyntheticColumnForm {
   sdtype: SyntheticSdtype;
   pii: boolean;
+  minValue: string;
+  maxValue: string;
 }
 
 export interface SyntheticFormState {
@@ -34,7 +38,12 @@ export function initialFormState(defaults: SyntheticDefaults): SyntheticFormStat
     columns: Object.fromEntries(
       defaults.columns.map((column) => [
         column.index,
-        { sdtype: column.sdtype, pii: column.pii },
+        {
+          sdtype: column.sdtype,
+          pii: column.pii,
+          minValue: column.min_value ?? "",
+          maxValue: column.max_value ?? "",
+        },
       ]),
     ),
   };
@@ -44,12 +53,14 @@ interface MetadataEditorProps {
   defaults: SyntheticDefaults;
   form: SyntheticFormState;
   onChange: (form: SyntheticFormState) => void;
+  columns?: ColumnInfo[];
 }
 
 export function MetadataEditor({
   defaults,
   form,
   onChange,
+  columns,
 }: MetadataEditorProps) {
   const setColumn = (index: number, next: SyntheticColumnForm) => {
     onChange({
@@ -58,16 +69,57 @@ export function MetadataEditor({
     });
   };
 
+  // Observed range of a column, used to pre-fill the allowed range when a
+  // column is switched to a type that supports one.
+  const detectedRange = (index: number, sdtype: SyntheticSdtype) => {
+    const column = columns?.find((entry) => entry.index === index);
+    if (!column) return null;
+    if (sdtype === "numerical") {
+      return {
+        min:
+          column.numeric_min === null || column.numeric_min === undefined
+            ? ""
+            : String(column.numeric_min),
+        max:
+          column.numeric_max === null || column.numeric_max === undefined
+            ? ""
+            : String(column.numeric_max),
+      };
+    }
+    if (sdtype === "datetime") {
+      return {
+        min: column.datetime_min ?? "",
+        max: column.datetime_max ?? "",
+      };
+    }
+    return null;
+  };
+
   const handleSdtypeChange = (index: number, sdtype: SyntheticSdtype) => {
     const current = form.columns[index];
     const pii = supportsPii(sdtype) ? (current?.pii ?? false) : false;
+    // A range only survives a type change when it stays the same kind of
+    // range; otherwise the values no longer make sense.
+    const keepRange =
+      current !== undefined &&
+      current.sdtype === sdtype &&
+      supportsRange(sdtype);
+    const detected = keepRange ? null : detectedRange(index, sdtype);
     onChange({
       ...form,
       // A primary key must stay an identifier, so changing its type away from
       // Identifier releases the key selection instead of leaving stale state.
       primaryKey:
         form.primaryKey === index && sdtype !== "id" ? null : form.primaryKey,
-      columns: { ...form.columns, [index]: { sdtype, pii } },
+      columns: {
+        ...form.columns,
+        [index]: {
+          sdtype,
+          pii,
+          minValue: keepRange ? current.minValue : (detected?.min ?? ""),
+          maxValue: keepRange ? current.maxValue : (detected?.max ?? ""),
+        },
+      },
     });
   };
 
@@ -81,7 +133,10 @@ export function MetadataEditor({
     onChange({
       ...form,
       primaryKey: index,
-      columns: { ...form.columns, [index]: { sdtype: "id", pii: false } },
+      columns: {
+        ...form.columns,
+        [index]: { sdtype: "id", pii: false, minValue: "", maxValue: "" },
+      },
     });
   };
 
@@ -127,7 +182,7 @@ export function MetadataEditor({
           >
             <SelectTrigger
               id="synthetic-primary-key"
-              className="w-full"
+              className="w-full cursor-pointer"
             >
               <SelectValue placeholder="None" />
             </SelectTrigger>
@@ -150,6 +205,12 @@ export function MetadataEditor({
               <th className="px-3 py-2 font-medium">Column</th>
               <th className="px-3 py-2 font-medium">Data type</th>
               <th className="px-3 py-2 font-medium">Anonymize</th>
+              <th
+                className="px-3 py-2 font-medium"
+                title="Optional: keep the generated values inside this range"
+              >
+                Allowed range
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -157,10 +218,13 @@ export function MetadataEditor({
               const value = form.columns[column.index] ?? {
                 sdtype: column.sdtype,
                 pii: column.pii,
+                minValue: column.min_value ?? "",
+                maxValue: column.max_value ?? "",
               };
               const piiSupported = supportsPii(value.sdtype);
               const isPrimaryKey = form.primaryKey === column.index;
               const piiActive = piiSupported && !isPrimaryKey && value.pii;
+              const rangeSupported = supportsRange(value.sdtype) && !isPrimaryKey;
               return (
                 <tr
                   key={column.index}
@@ -176,7 +240,7 @@ export function MetadataEditor({
                         handleSdtypeChange(column.index, next as SyntheticSdtype)
                       }
                     >
-                      <SelectTrigger size="sm" className="w-44">
+                      <SelectTrigger size="sm" className="w-44 cursor-pointer">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -192,7 +256,7 @@ export function MetadataEditor({
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        className="size-4 accent-primary disabled:opacity-40"
+                        className="size-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
                         checked={piiActive}
                         disabled={!piiSupported || isPrimaryKey}
                         onChange={(event) =>
@@ -210,6 +274,43 @@ export function MetadataEditor({
                             : "—"}
                       </span>
                     </label>
+                  </td>
+                  <td className="px-3 py-1.5">
+                    {rangeSupported ? (
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type={value.sdtype === "datetime" ? "date" : "number"}
+                          step="any"
+                          value={value.minValue}
+                          placeholder="Min"
+                          aria-label={`Minimum allowed value for ${column.header}`}
+                          onChange={(event) =>
+                            setColumn(column.index, {
+                              ...value,
+                              minValue: event.target.value,
+                            })
+                          }
+                          className="h-7 w-24 text-xs tabular-nums"
+                        />
+                        <span className="text-muted-foreground">–</span>
+                        <Input
+                          type={value.sdtype === "datetime" ? "date" : "number"}
+                          step="any"
+                          value={value.maxValue}
+                          placeholder="Max"
+                          aria-label={`Maximum allowed value for ${column.header}`}
+                          onChange={(event) =>
+                            setColumn(column.index, {
+                              ...value,
+                              maxValue: event.target.value,
+                            })
+                          }
+                          className="h-7 w-24 text-xs tabular-nums"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                 </tr>
               );

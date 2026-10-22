@@ -21,6 +21,7 @@ DETECTION_SAMPLE_CAP = 5000
 _CURRENCY_SYMBOLS = ("$", "€", "£", "¥", "¤")
 _NUMBER_CHARS_RE = re.compile(r"[0#]")
 _DECIMAL_PLACES_RE = re.compile(r"\.(0+)")
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _format_number(value: float, number_format: str) -> str:
@@ -117,6 +118,8 @@ def create_dataset(
     samples: list[list[str]] = [[] for _ in range(column_count)]
     numeric_min: list[float | None] = [None] * column_count
     numeric_max: list[float | None] = [None] * column_count
+    datetime_min: list[str | None] = [None] * column_count
+    datetime_max: list[str | None] = [None] * column_count
     preview: list[list[str | None]] = []
     total_rows = 0
 
@@ -146,6 +149,15 @@ def create_dataset(
                         numeric_min[index] = number
                     if high is None or number > high:
                         numeric_max[index] = number
+                elif _ISO_DATE_RE.match(value):
+                    # ISO dates sort lexicographically, so plain string
+                    # comparison gives the chronological range.
+                    low_date = datetime_min[index]
+                    high_date = datetime_max[index]
+                    if low_date is None or value < low_date:
+                        datetime_min[index] = value
+                    if high_date is None or value > high_date:
+                        datetime_max[index] = value
             handle.write(json.dumps(row, ensure_ascii=False))
             handle.write("\n")
 
@@ -164,6 +176,8 @@ def create_dataset(
                 "sample_values": sample_values,
                 "numeric_min": numeric_min[index],
                 "numeric_max": numeric_max[index],
+                "datetime_min": datetime_min[index],
+                "datetime_max": datetime_max[index],
             }
         )
 
