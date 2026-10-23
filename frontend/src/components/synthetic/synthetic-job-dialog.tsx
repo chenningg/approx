@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { DownloadIcon, Loader2Icon } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { ChoiceCard } from "@/components/dataset-preview/choice-card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +13,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { downloadSynthetic } from "@/features/datasets/api";
 import { syntheticStatusQueryOptions } from "@/features/datasets/queries";
 
 interface SyntheticJobDialogProps {
@@ -23,6 +21,7 @@ interface SyntheticJobDialogProps {
   jobId: string | null;
   onOpenChange: (open: boolean) => void;
   onRetry: () => void;
+  onComplete: (jobId: string) => void;
 }
 
 export function SyntheticJobDialog({
@@ -31,9 +30,9 @@ export function SyntheticJobDialog({
   jobId,
   onOpenChange,
   onRetry,
+  onComplete,
 }: SyntheticJobDialogProps) {
   const [display, setDisplay] = useState(0);
-  const [exporting, setExporting] = useState(false);
 
   const statusQuery = useQuery({
     ...syntheticStatusQueryOptions(datasetId, jobId ?? ""),
@@ -62,27 +61,19 @@ export function SyntheticJobDialog({
     return () => cancelAnimationFrame(frame);
   }, [isRunning, target]);
 
-  const handleExport = async () => {
-    if (!jobId || exporting) return;
-    setExporting(true);
-    try {
-      await downloadSynthetic(
-        datasetId,
-        jobId,
-        status?.export_filename ?? "synthetic.xlsx",
-      );
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const failed = statusQuery.isError || status?.status === "failed";
   const completed = !failed && status?.status === "completed";
+
+  useEffect(() => {
+    if (open && completed && jobId !== null) {
+      onComplete(jobId);
+    }
+  }, [open, completed, jobId, onComplete]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        showCloseButton={!isRunning}
+        showCloseButton={failed}
         onInteractOutside={(event) => {
           if (isRunning) event.preventDefault();
         }}
@@ -117,28 +108,16 @@ export function SyntheticJobDialog({
         ) : completed ? (
           <>
             <DialogHeader>
-              <DialogTitle>Synthetic data ready</DialogTitle>
+              <DialogTitle>Opening comparison</DialogTitle>
               <DialogDescription>
                 {(status?.output_rows ?? status?.total_rows ?? 0).toLocaleString()}{" "}
-                rows generated
+                rows generated. Preparing the comparison view…
               </DialogDescription>
             </DialogHeader>
-            <div className="flex flex-col gap-2">
-              <ChoiceCard
-                icon={DownloadIcon}
-                title="Export synthetic data"
-                hint="Download the generated dataset as an Excel file."
-                onClick={handleExport}
-                busy={exporting}
-              />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2Icon className="size-4 animate-spin" />
+              Loading synthetic results…
             </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" size="sm" variant="outline">
-                  Close
-                </Button>
-              </DialogClose>
-            </DialogFooter>
           </>
         ) : (
           <>

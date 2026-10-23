@@ -6,13 +6,15 @@ from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from src.auth.deps import AuthUserDep
-from src.datasets import processing, service, synthetic
+from src.datasets import comparison, processing, service, synthetic
 from src.datasets.dtos import (
     DatasetPreview,
     ProcessRequest,
     ProcessStatus,
     RowsPage,
+    SyntheticComparison,
     SyntheticDefaults,
+    SyntheticEvaluation,
     SyntheticRequest,
     SyntheticStatus,
 )
@@ -216,6 +218,61 @@ async def get_synthetic_status(
             detail="Synthetic generation job not found",
         ) from exc
     return SyntheticStatus.model_validate(job)
+
+
+@datasets_router.get(
+    "/{dataset_id}/synthetic/{job_id}/comparison",
+    response_model=SyntheticComparison,
+)
+async def get_synthetic_comparison(
+    dataset_id: UUID,
+    job_id: str,
+    auth_user: AuthUserDep,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(200, ge=1, le=1000),
+) -> SyntheticComparison:
+    try:
+        result = await run_in_threadpool(
+            comparison.get_comparison, dataset_id, job_id, offset, limit
+        )
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Synthetic generation job not found",
+        ) from exc
+    except comparison.ComparisonUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    return SyntheticComparison.model_validate(result)
+
+
+@datasets_router.get(
+    "/{dataset_id}/synthetic/{job_id}/evaluation",
+    response_model=SyntheticEvaluation,
+)
+async def get_synthetic_evaluation(
+    dataset_id: UUID, job_id: str, auth_user: AuthUserDep
+) -> SyntheticEvaluation:
+    try:
+        result = await run_in_threadpool(
+            comparison.get_evaluation, dataset_id, job_id
+        )
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Synthetic generation job not found",
+        ) from exc
+    except comparison.ComparisonUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    except comparison.EvaluationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to evaluate synthetic data: {exc}",
+        ) from exc
+    return SyntheticEvaluation.model_validate(result)
 
 
 @datasets_router.get("/{dataset_id}/synthetic/{job_id}/export")

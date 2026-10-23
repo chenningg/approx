@@ -1,8 +1,17 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
-import { getDataset, getDatasetRows, getProcessStatus, getSyntheticDefaults, getSyntheticStatus } from './api'
+import {
+  getDataset,
+  getDatasetRows,
+  getProcessStatus,
+  getSyntheticComparison,
+  getSyntheticDefaults,
+  getSyntheticEvaluation,
+  getSyntheticStatus,
+} from './api'
 
 export const ROWS_PAGE_SIZE = 200
+export const COMPARISON_PAGE_SIZE = 200
 
 export const datasetKey = (id: string) => ['datasets', id] as const
 
@@ -43,4 +52,29 @@ export const syntheticStatusQueryOptions = (id: string, jobId: string) =>
   queryOptions({
     queryKey: ['datasets', id, 'synthetic', jobId],
     queryFn: () => getSyntheticStatus(id, jobId),
+  })
+
+export const syntheticComparisonQueryOptions = (
+  id: string,
+  jobId: string,
+) =>
+  infiniteQueryOptions({
+    queryKey: ['datasets', id, 'synthetic', jobId, 'comparison'],
+    queryFn: ({ pageParam }) =>
+      getSyntheticComparison(id, jobId, pageParam, COMPARISON_PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const next = lastPage.offset + lastPage.rows.length
+      return next < lastPage.total ? next : undefined
+    },
+  })
+
+export const syntheticEvaluationQueryOptions = (
+  id: string,
+  jobId: string,
+) =>
+  queryOptions({
+    queryKey: ['datasets', id, 'synthetic', jobId, 'evaluation'],
+    queryFn: () => getSyntheticEvaluation(id, jobId),
+    staleTime: Infinity,
   })

@@ -11,7 +11,9 @@ Layout::
             {job_id}.xlsx  # transformed output written by a completed job
         synthetic/
             {job_id}.json  # synthetic generation job status
+            {job_id}.rows.jsonl  # generated rows for previews
             {job_id}.xlsx  # generated output written by a completed job
+            {job_id}.evaluation.json  # cached SDV evaluation report
 """
 
 from __future__ import annotations
@@ -66,6 +68,14 @@ def synthetic_job_path(dataset_id: UUID | str, job_id: str) -> Path:
 
 def synthetic_output_path(dataset_id: UUID | str, job_id: str) -> Path:
     return synthetic_dir(dataset_id) / f"{job_id}.xlsx"
+
+
+def synthetic_rows_path(dataset_id: UUID | str, job_id: str) -> Path:
+    return synthetic_dir(dataset_id) / f"{job_id}.rows.jsonl"
+
+
+def synthetic_evaluation_path(dataset_id: UUID | str, job_id: str) -> Path:
+    return synthetic_dir(dataset_id) / f"{job_id}.evaluation.json"
 
 
 def exists(dataset_id: UUID | str) -> bool:

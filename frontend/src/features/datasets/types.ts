@@ -310,3 +310,60 @@ export interface SyntheticStatus {
   export_filename: string | null
   output_rows: number | null
 }
+
+export interface ComparisonColumn {
+  index: number
+  header: string
+  sdtype: string
+}
+
+export interface ComparisonRow {
+  original: (string | null)[]
+  synthetic: (string | null)[]
+}
+
+export interface SyntheticComparison {
+  offset: number
+  limit: number
+  total: number
+  original_total: number
+  synthetic_total: number
+  columns: ComparisonColumn[]
+  rows: ComparisonRow[]
+}
+
+export interface EvaluationTable {
+  columns: string[]
+  rows: (string | number | boolean | null)[][]
+}
+
+export interface EvaluationPlot {
+  data: unknown[]
+  layout: Record<string, unknown>
+  frames?: unknown[]
+}
+
+export interface EvaluationProperty {
+  property: string
+  score: number | null
+  details: EvaluationTable
+  plot: EvaluationPlot | null
+}
+
+export interface EvaluationReport {
+  report: 'quality' | 'diagnostic'
+  score: number | null
+  properties: EvaluationProperty[]
+}
+
+export interface SyntheticEvaluation {
+  quality: EvaluationReport
+  diagnostic: EvaluationReport
+  sampled: boolean
+  sample_rows: number
+  original_sample_rows: number
+  synthetic_sample_rows: number
+  original_rows: number
+  synthetic_rows: number
+  generated_at: string
+}

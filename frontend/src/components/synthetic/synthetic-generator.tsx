@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeftIcon, Loader2Icon, SparklesIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
@@ -74,11 +74,23 @@ interface SyntheticWorkspaceProps {
 }
 
 function SyntheticWorkspace({ id, dataset, defaults }: SyntheticWorkspaceProps) {
+  const navigate = useNavigate();
   const [form, setForm] = useState<SyntheticFormState>(() =>
     initialFormState(defaults),
   );
   const [jobOpen, setJobOpen] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+
+  const handleComplete = useCallback(
+    (completedJobId: string) => {
+      setJobOpen(false);
+      void navigate({
+        to: "/datasets/$datasetId/synthetic/$jobId",
+        params: { datasetId: id, jobId: completedJobId },
+      });
+    },
+    [id, navigate],
+  );
 
   const rowsQuery = useInfiniteQuery({
     ...datasetRowsQueryOptions(id),
@@ -193,6 +205,7 @@ function SyntheticWorkspace({ id, dataset, defaults }: SyntheticWorkspaceProps) 
         jobId={jobId}
         onOpenChange={setJobOpen}
         onRetry={handleGenerate}
+        onComplete={handleComplete}
       />
     </div>
   );

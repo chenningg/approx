@@ -14,7 +14,7 @@ import math
 import random
 import re
 import threading
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid7
@@ -315,6 +315,7 @@ def start_job(
         "error": None,
         "export_filename": None,
         "output_rows": None,
+        "request": request.model_dump(mode="json"),
     }
     with _LOCK:
         _ACTIVE[job_id] = job
@@ -387,6 +388,44 @@ def _cast_column(sdtype: str, values: list[str | None]) -> list[Any]:
         }
         return [lookup.get((value or "").strip().lower()) for value in values]
     return values
+
+
+def _display_value(value: Any) -> str | None:
+    """Render a generated cell the same way uploaded dataset rows are stored."""
+    import pandas as pd
+
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    if hasattr(value, "item") and not isinstance(value, (str, bytes)):
+        value = value.item()
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    text = str(value).strip()
+    return text or None
+
+
+def _write_rows(frame: Any, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for row in frame.itertuples(index=False, name=None):
+            handle.write(
+                json.dumps(
+                    [_display_value(value) for value in row],
+                    ensure_ascii=False,
+                )
+            )
+            handle.write("\n")
 
 
 def _load_dataframe(
@@ -920,6 +959,10 @@ def _run_job(
         export_path = storage.synthetic_output_path(dataset_id, job_id)
         export_path.parent.mkdir(parents=True, exist_ok=True)
         synthetic.to_excel(export_path, index=False)
+        ordered = synthetic[
+            [names[config.index] for config in request.columns]
+        ]
+        _write_rows(ordered, storage.synthetic_rows_path(dataset_id, job_id))
 
         stem = Path(str(meta.get("filename") or "dataset")).stem
         export_filename = f"{stem}_synthetic.xlsx"

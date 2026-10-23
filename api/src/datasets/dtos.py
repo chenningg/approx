@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -153,3 +153,54 @@ class SyntheticStatus(BaseModel):
     error: str | None = None
     export_filename: str | None = None
     output_rows: int | None = None
+
+
+class ComparisonColumn(BaseModel):
+    index: int
+    header: str
+    sdtype: str
+
+
+class ComparisonRow(BaseModel):
+    original: list[str | None]
+    synthetic: list[str | None]
+
+
+class SyntheticComparison(BaseModel):
+    offset: int
+    limit: int
+    total: int
+    original_total: int
+    synthetic_total: int
+    columns: list[ComparisonColumn]
+    rows: list[ComparisonRow]
+
+
+class EvaluationTable(BaseModel):
+    columns: list[str]
+    rows: list[list[Any]]
+
+
+class EvaluationProperty(BaseModel):
+    property: str
+    score: float | None = None
+    details: EvaluationTable
+    plot: dict[str, Any] | None = None
+
+
+class EvaluationReport(BaseModel):
+    report: Literal["quality", "diagnostic"]
+    score: float | None = None
+    properties: list[EvaluationProperty]
+
+
+class SyntheticEvaluation(BaseModel):
+    quality: EvaluationReport
+    diagnostic: EvaluationReport
+    sampled: bool
+    sample_rows: int
+    original_sample_rows: int
+    synthetic_sample_rows: int
+    original_rows: int
+    synthetic_rows: int
+    generated_at: str

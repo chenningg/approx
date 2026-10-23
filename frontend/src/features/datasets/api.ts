@@ -5,7 +5,9 @@ import type {
   DatasetPreview,
   ProcessStatus,
   RowsPage,
+  SyntheticComparison,
   SyntheticDefaults,
+  SyntheticEvaluation,
   SyntheticRequest,
   SyntheticStatus,
 } from './types'
@@ -216,6 +218,51 @@ export async function getSyntheticStatus(
   }
 
   return (await response.json()) as SyntheticStatus
+}
+
+export async function getSyntheticComparison(
+  id: string,
+  jobId: string,
+  offset: number,
+  limit: number,
+): Promise<SyntheticComparison> {
+  const params = new URLSearchParams({
+    offset: String(offset),
+    limit: String(limit),
+  })
+
+  const response = await fetch(
+    `${config.apiBaseUrl}/datasets/${id}/synthetic/${jobId}/comparison?${params.toString()}`,
+    { credentials: 'include' },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      (await readDetail(response)) ??
+        `Failed to load synthetic comparison (status ${response.status})`,
+    )
+  }
+
+  return (await response.json()) as SyntheticComparison
+}
+
+export async function getSyntheticEvaluation(
+  id: string,
+  jobId: string,
+): Promise<SyntheticEvaluation> {
+  const response = await fetch(
+    `${config.apiBaseUrl}/datasets/${id}/synthetic/${jobId}/evaluation`,
+    { credentials: 'include' },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      (await readDetail(response)) ??
+        `Failed to evaluate synthetic data (status ${response.status})`,
+    )
+  }
+
+  return (await response.json()) as SyntheticEvaluation
 }
 
 export async function downloadSynthetic(
