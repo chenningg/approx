@@ -11,6 +11,8 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import random
+import re
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +25,16 @@ from loguru import logger
 from src.datasets import actions, storage
 from src.datasets.dtos import SyntheticRequest
 from src.datasets.service import DatasetNotFoundError
+
+#: NRIC/FIN checksum tables (Singapore)
+_NRIC_WEIGHTS = [2, 7, 6, 5, 4, 3, 2]
+_NRIC_ST_TABLE = "JZIHGFEDCBA"
+_NRIC_FG_TABLE = "XWUTRQPNMLK"
+_NRIC_M_TABLE = "XWUTRQPNJLK"
+_NRIC_RE = re.compile(r"^[STFGM]\d{7}[A-Z]$")
+
+_GENDER_MALE = {"m", "male", "man", "boy"}
+_GENDER_FEMALE = {"f", "female", "woman", "girl"}
 
 _ACTIVE: dict[str, dict[str, Any]] = {}
 _LOCK = threading.Lock()
@@ -491,6 +503,123 @@ def _clip_frame(
     return clipped
 
 
+def _nric_checksum(prefix: str, digits7: str) -> str:
+    """Return the checksum letter for a 7-digit NRIC/FIN body."""
+    prefix = prefix.upper()
+    total = sum(int(d) * w for d, w in zip(digits7, _NRIC_WEIGHTS))
+    if prefix == "M":
+        return _NRIC_M_TABLE[(total + 3) % 11]
+    if prefix in {"T", "G"}:
+        total += 4
+    table = _NRIC_FG_TABLE if prefix in {"F", "G"} else _NRIC_ST_TABLE
+    return table[total % 11]
+
+
+def _generate_nric(prefix: str, want_male: bool | None, existing: set[str]) -> str:
+    """Generate a checksum-valid, unique NRIC/FIN."""
+    for _ in range(10000):
+        digits = [str(random.randint(0, 9)) for _ in range(6)]
+        if want_male is None:
+            digits.append(str(random.randint(0, 9)))
+        else:
+            choices = [1, 3, 5, 7, 9] if want_male else [0, 2, 4, 6, 8]
+            digits.append(str(random.choice(choices)))
+        digits7 = "".join(digits)
+        nric = f"{prefix}{digits7}{_nric_checksum(prefix, digits7)}"
+        if nric not in existing:
+            return nric
+    raise ValueError("Unable to generate a unique NRIC after 10000 attempts")
+
+
+def _normalize_gender(value: Any) -> bool | None:
+    """Map a generated gender value to ``True`` for male, ``False`` for female."""
+    if value is None:
+        return None
+    token = re.sub(r"[^a-z]", "", str(value).lower())
+    if token in _GENDER_MALE:
+        return True
+    if token in _GENDER_FEMALE:
+        return False
+    return None
+
+
+def _gender_parities(
+    frame: Any, meta: dict[str, Any], names: dict[int, str]
+) -> list[bool | None]:
+    """Return the per-row gender parity, if a gender column was generated."""
+    for column in meta.get("columns", []):
+        if column.get("detected_type") != "GENDER":
+            continue
+        index = column["index"]
+        name = names.get(index)
+        if name and name in frame.columns:
+            return [_normalize_gender(value) for value in frame[name]]
+    return [None] * len(frame)
+
+
+def _nric_prefix_pool(original_df: Any, name: str) -> dict[str, int]:
+    """Count the source prefixes so generated IDs mirror the original mix."""
+    if original_df is None or name not in getattr(original_df, "columns", []):
+        return {"S": 1, "T": 1}
+    counts: dict[str, int] = {}
+    for value in original_df[name].dropna().astype(str):
+        normalized = value.strip().upper().replace(" ", "")
+        if _NRIC_RE.match(normalized):
+            counts[normalized[0]] = counts.get(normalized[0], 0) + 1
+    return counts or {"S": 1, "T": 1}
+
+
+def _postprocess_nric(
+    synthetic: Any,
+    original_df: Any,
+    meta: dict[str, Any],
+    request: SyntheticRequest,
+    names: dict[int, str],
+) -> Any:
+    """Replace identifier-style NRIC columns with valid, realistic values."""
+    if synthetic is None or len(synthetic) == 0:
+        return synthetic
+    frame = synthetic.copy()
+    parities = _gender_parities(frame, meta, names)
+    column_meta = {column["index"]: column for column in meta.get("columns", [])}
+
+    for config in request.columns:
+        index = config.index
+        if column_meta.get(index, {}).get("detected_type") != "NRIC":
+            continue
+        is_primary = request.primary_key == index
+        if not (is_primary or config.sdtype.strip() == "id"):
+            continue
+        name = names.get(index)
+        if name is None or name not in frame.columns:
+            continue
+
+        prefix_counts = _nric_prefix_pool(original_df, name)
+        prefixes = list(prefix_counts)
+        weights = [prefix_counts[prefix] for prefix in prefixes]
+        used: set[str] = set()
+        generated: list[str] = []
+        for parity in parities:
+            prefix = random.choices(prefixes, weights=weights, k=1)[0]
+            nric = _generate_nric(prefix, parity, used)
+            used.add(nric)
+            generated.append(nric)
+        frame[name] = generated
+
+    return frame
+
+
+def _pin_uniform_marginals(synthesizer: Any, columns: set[str]) -> None:
+    """Pin categorical marginals to [0, 1] so source frequencies are preserved."""
+    model = getattr(synthesizer, "_model", None)
+    univariates = getattr(model, "univariates", None)
+    if model is None or univariates is None:
+        return
+    for index, name in enumerate(getattr(model, "columns", [])):
+        if name in columns and index < len(univariates):
+            univariates[index]._params = {"loc": 0.0, "scale": 1.0}
+
+
 def _sample_within_bounds(
     synthesizer: Any,
     request: SyntheticRequest,
@@ -557,17 +686,32 @@ def _run_job(
             job.update(phase="Training model", progress=0.4)
         from sdv.single_table import GaussianCopulaSynthesizer
 
-        synthesizer = GaussianCopulaSynthesizer(metadata)
+        names = _column_names(meta)
+        numerical_distributions: dict[str, str] = {}
+        for cfg in request.columns:
+            if request.primary_key == cfg.index:
+                continue
+            sdtype = cfg.sdtype.strip()
+            if sdtype in ("categorical", "boolean"):
+                cname = names.get(cfg.index)
+                if cname:
+                    numerical_distributions[cname] = "uniform"
+        synthesizer = GaussianCopulaSynthesizer(
+            metadata, numerical_distributions=numerical_distributions or None
+        )
         synthesizer.fit({request.table_name: data})
+        _pin_uniform_marginals(synthesizer, set(numerical_distributions))
+        if hasattr(synthesizer, "_set_random_state"):
+            synthesizer._set_random_state(random.randint(0, 2**31 - 1))
 
         with _LOCK:
             job.update(phase="Generating synthetic data", progress=0.75)
-        names = _column_names(meta)
         integers = _integer_columns(data)
         bounds = _effective_bounds(resolve_bounds(request), names, integers)
         synthetic = _sample_within_bounds(
             synthesizer, request, bounds, names, integers, job
         )
+        synthetic = _postprocess_nric(synthetic, data, meta, request, names)
 
         with _LOCK:
             job.update(phase="Writing file", progress=0.9)
