@@ -36,6 +36,73 @@ _NRIC_RE = re.compile(r"^[STFGM]\d{7}[A-Z]$")
 _GENDER_MALE = {"m", "male", "man", "boy"}
 _GENDER_FEMALE = {"f", "female", "woman", "girl"}
 
+#: Singapore address generation (match source style, source + curated SG list)
+#: Curated name/type pairs. The boolean marks HDB-style blocks (``Blk``).
+_SG_STREET_PAIRS = [
+    ("Ang Mo Kio", "Ave", True),
+    ("Bedok", "North Rd", True),
+    ("Bishan", "St", True),
+    ("Bukit Batok", "West Ave", True),
+    ("Bukit Merah", "View", True),
+    ("Bukit Panjang", "Ring Rd", True),
+    ("Choa Chu Kang", "Ave", True),
+    ("Clementi", "Ave", True),
+    ("Geylang", "Rd", True),
+    ("Hougang", "Ave", True),
+    ("Jurong East", "St", True),
+    ("Jurong West", "St", True),
+    ("Kallang", "Bahru", True),
+    ("Marine Parade", "Rd", True),
+    ("Pasir Ris", "Dr", True),
+    ("Punggol", "Field", True),
+    ("Queenstown", "Rd", True),
+    ("Sembawang", "Rd", True),
+    ("Sengkang", "East Ave", True),
+    ("Serangoon", "Central", True),
+    ("Tampines", "Ave", True),
+    ("Toa Payoh", "Lor", True),
+    ("Woodlands", "Dr", True),
+    ("Yishun", "Ring Rd", True),
+    ("Simei", "St", True),
+    ("Bugis", "St", True),
+    ("Orchard", "Rd", False),
+    ("Mandarin", "Drive", False),
+    ("East Coast", "Rd", False),
+    ("Bukit Timah", "Rd", False),
+    ("Victoria", "St", False),
+    ("North Bridge", "Rd", False),
+    ("New Upper Changi", "Rd", False),
+    ("Upper Changi", "Rd", False),
+    ("West Coast", "Rd", False),
+    ("Telok Blangah", "Rd", False),
+]
+
+_BLK_RE = re.compile(r"\b(?:blk|block)\s*(\d+[A-Za-z]?)\b", re.IGNORECASE)
+_STREET_TYPE_RE = re.compile(
+    r"\b(street|st|road|rd|avenue|ave|drive|dr|crescent|cres|lane|ln|close|cl|walk|place|terrace)\b",
+    re.IGNORECASE,
+)
+_STREET_TYPE_MAP = {
+    "st": "St",
+    "street": "Street",
+    "rd": "Rd",
+    "road": "Road",
+    "ave": "Ave",
+    "avenue": "Avenue",
+    "dr": "Dr",
+    "drive": "Drive",
+    "cres": "Cres",
+    "crescent": "Crescent",
+    "ln": "Ln",
+    "lane": "Lane",
+    "cl": "Cl",
+    "close": "Close",
+    "walk": "Walk",
+    "place": "Place",
+    "terrace": "Terrace",
+}
+_SG_ADDR_NORM_RE = re.compile(r"[^a-z0-9]+")
+
 _ACTIVE: dict[str, dict[str, Any]] = {}
 _LOCK = threading.Lock()
 
@@ -569,6 +636,140 @@ def _nric_prefix_pool(original_df: Any, name: str) -> dict[str, int]:
     return counts or {"S": 1, "T": 1}
 
 
+def _normalize_sg_addr(value: str) -> str:
+    return _SG_ADDR_NORM_RE.sub("", value.lower())
+
+
+def _parse_sg_address(value: Any) -> tuple[str, str, bool] | None:
+    """Extract (street name, street type, is-HDB) from a source address."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+
+    block_match = _BLK_RE.search(text)
+    type_match = _STREET_TYPE_RE.search(text)
+    if type_match is None:
+        return None
+
+    street_type = _STREET_TYPE_MAP.get(type_match.group(1).lower())
+    if street_type is None:
+        return None
+
+    start = 0
+    if block_match:
+        start = block_match.end()
+    else:
+        house_match = re.match(r"^\s*\d+[A-Za-z]?\b", text)
+        if house_match:
+            start = house_match.end()
+
+    street_name = " ".join(text[start : type_match.start()].strip(" ,.-").split())
+    if not street_name:
+        return None
+
+    return street_name, street_type, bool(block_match)
+
+
+def _sg_address_pools(original_df: Any, name: str) -> dict[str, Any]:
+    source_pairs: list[tuple[str, str, bool]] = []
+    if original_df is not None and name in getattr(original_df, "columns", []):
+        for value in original_df[name].dropna().astype(str):
+            parsed = _parse_sg_address(value)
+            if parsed:
+                source_pairs.append(parsed)
+    return {"source_pairs": source_pairs, "curated_pairs": list(_SG_STREET_PAIRS)}
+
+
+def _compose_sg_address(street_name: str, street_type: str, use_blk: bool) -> str:
+    if use_blk:
+        block_num = random.randint(1, 999)
+        suffix = random.choice(["", "", "", "A", "B", "C"])
+        block = f"{block_num}{suffix}"
+        street_num = random.randint(1, 200)
+        return f"Blk {block} {street_name} {street_type} {street_num}"
+    house_num = random.randint(1, 999)
+    suffix = random.choice(["", "", "", "A", "B"])
+    house = f"{house_num}{suffix}"
+    return f"{house} {street_name} {street_type}"
+
+
+def _generate_sg_address(pools: dict[str, Any], used: set[str]) -> str:
+    source_pairs = pools.get("source_pairs") or []
+    curated_pairs = pools.get("curated_pairs") or []
+
+    for _ in range(20000):
+        if source_pairs and (not curated_pairs or random.random() < 0.7):
+            street_name, street_type, use_blk = random.choice(source_pairs)
+        else:
+            street_name, street_type, use_blk = random.choice(curated_pairs)
+
+        addr = _compose_sg_address(street_name, street_type, use_blk)
+        norm = _normalize_sg_addr(addr)
+        if norm not in used:
+            used.add(norm)
+            return addr
+
+    # Fallback: add a unit number so a unique value can still be produced.
+    pairs = source_pairs or curated_pairs
+    while True:
+        street_name, street_type, _ = random.choice(pairs)
+        addr = (
+            f"{_compose_sg_address(street_name, street_type, False)} "
+            f"#01-{random.randint(1, 999):03d}"
+        )
+        norm = _normalize_sg_addr(addr)
+        if norm not in used:
+            used.add(norm)
+            return addr
+
+
+def _postprocess_address(
+    synthetic: Any,
+    original_df: Any,
+    meta: dict[str, Any],
+    request: SyntheticRequest,
+    names: dict[int, str],
+) -> Any:
+    """Replace ADDRESS columns with Singapore-style addresses."""
+    import pandas as pd
+
+    if synthetic is None or len(synthetic) == 0:
+        return synthetic
+    frame = synthetic.copy()
+    column_meta = {column["index"]: column for column in meta.get("columns", [])}
+
+    for config in request.columns:
+        index = config.index
+        if column_meta.get(index, {}).get("detected_type") != "ADDRESS":
+            continue
+        if request.primary_key == index:
+            continue
+        if config.sdtype.strip() != "street_address" or not config.pii:
+            continue
+        name = names.get(index)
+        if name is None or name not in frame.columns:
+            continue
+
+        pools = _sg_address_pools(original_df, name)
+        used: set[str] = set()
+        if original_df is not None and name in getattr(original_df, "columns", []):
+            used.update(
+                _normalize_sg_addr(str(value))
+                for value in original_df[name].dropna()
+            )
+        generated: list[Any] = []
+        for value in frame[name]:
+            if pd.isna(value):
+                generated.append(value)
+                continue
+            generated.append(_generate_sg_address(pools, used))
+        frame[name] = generated
+
+    return frame
+
+
 def _postprocess_nric(
     synthetic: Any,
     original_df: Any,
@@ -712,6 +913,7 @@ def _run_job(
             synthesizer, request, bounds, names, integers, job
         )
         synthetic = _postprocess_nric(synthetic, data, meta, request, names)
+        synthetic = _postprocess_address(synthetic, data, meta, request, names)
 
         with _LOCK:
             job.update(phase="Writing file", progress=0.9)
