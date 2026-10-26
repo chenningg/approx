@@ -14,6 +14,7 @@ import math
 import random
 import re
 import threading
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -167,6 +168,37 @@ _BOUNDED_SDTYPES = {"numerical", "datetime"}
 #: inside the requested bounds. The shortfall is filled with clipped rows
 #: afterwards, so the requested row count is always honoured.
 _MAX_RESAMPLE_ATTEMPTS = 5
+
+#: Original values inspected when inferring display/phone formats.
+_FORMAT_SAMPLE_LIMIT = 5000
+
+#: Currency symbols the upload parser recognises in numeric cells.
+_CURRENCY_SYMBOLS = ("$", "€", "£", "¥", "¤")
+
+#: Attempts to avoid reproducing a source phone number verbatim.
+_PHONE_RETRY_LIMIT = 50
+
+
+@dataclass(frozen=True)
+class _NumericFormat:
+    """How a column's numbers were displayed in the source data."""
+
+    prefix: str
+    suffix: str
+    thousands: bool
+    decimals: int
+    percent: bool
+
+
+@dataclass(frozen=True)
+class _PhoneTemplate:
+    """A source phone shape with fixed digits and leading-digit choices."""
+
+    template: str
+    fixed: tuple[str | None, ...]
+    leading_position: int | None
+    leading: tuple[str, ...]
+    weight: int
 
 
 def _column_names(meta: dict[str, Any]) -> dict[int, str]:
@@ -415,6 +447,123 @@ def _display_value(value: Any) -> str | None:
     return text or None
 
 
+def _numeric_format(values: list[str | None]) -> _NumericFormat | None:
+    """Infer the display shape of a numeric column from its source strings."""
+    shapes: dict[tuple[str, str, bool, bool], list[int]] = {}
+    checked = 0
+    for raw in values:
+        if checked >= _FORMAT_SAMPLE_LIMIT:
+            break
+        if raw is None:
+            continue
+        text = str(raw).strip()
+        if not text or actions.parse_number(text) is None:
+            continue
+
+        percent = text.endswith("%")
+        body = text[:-1].strip() if percent else text
+        prefix = ""
+        for symbol in _CURRENCY_SYMBOLS:
+            if body.startswith(symbol):
+                prefix = symbol
+                body = body[len(symbol) :].strip()
+                break
+
+        thousands = "," in body
+        decimal_match = re.search(r"\.(\d+)", body)
+        decimals = len(decimal_match.group(1)) if decimal_match else 0
+
+        key = (prefix, "%" if percent else "", thousands, percent)
+        entry = shapes.setdefault(key, [0, 0])
+        entry[0] += 1
+        entry[1] = max(entry[1], decimals)
+        checked += 1
+
+    if not shapes:
+        return None
+
+    (prefix, suffix, thousands, percent), (_, decimals) = max(
+        shapes.items(), key=lambda item: item[1][0]
+    )
+    return _NumericFormat(
+        prefix=prefix,
+        suffix=suffix,
+        thousands=thousands,
+        decimals=decimals,
+        percent=percent,
+    )
+
+
+def _format_numeric(value: Any, number_format: _NumericFormat) -> str | None:
+    """Render a generated number the way the source column was displayed."""
+    import pandas as pd
+
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        text = str(value).strip()
+        return text or None
+
+    sign = "-" if number < 0 else ""
+    body_format = (
+        f",.{number_format.decimals}f"
+        if number_format.thousands
+        else f".{number_format.decimals}f"
+    )
+    body = f"{abs(number):{body_format}}"
+    return f"{sign}{number_format.prefix}{body}{number_format.suffix}"
+
+
+def _excel_number_format(number_format: _NumericFormat | None) -> str | None:
+    """Translate an inferred display shape into an Excel number format."""
+    if number_format is None:
+        return None
+    decimals = "." + ("0" * number_format.decimals) if number_format.decimals else ""
+    body = ("#,##0" if number_format.thousands else "0") + decimals
+    if number_format.percent:
+        return f"{body}%"
+    if number_format.prefix:
+        return f'"{number_format.prefix}"{body}'
+    return body
+
+
+def _write_excel(
+    frame: Any,
+    path: Path,
+    names: dict[int, str],
+    request: SyntheticRequest,
+    formats: dict[str, _NumericFormat],
+) -> None:
+    """Write the export workbook, keeping numeric cells but restoring formats."""
+    import pandas as pd
+    from openpyxl.utils import get_column_letter
+
+    ordered = frame[[names[config.index] for config in request.columns]].copy()
+    for name, number_format in formats.items():
+        if number_format.percent and name in ordered.columns:
+            ordered[name] = pd.to_numeric(ordered[name], errors="coerce") / 100
+
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        ordered.to_excel(writer, index=False, sheet_name="Sheet1")
+        worksheet = writer.sheets["Sheet1"]
+        for offset, config in enumerate(request.columns, start=1):
+            number_format = _excel_number_format(
+                formats.get(names[config.index])
+            )
+            if number_format is None:
+                continue
+            letter = get_column_letter(offset)
+            worksheet.column_dimensions[letter].number_format = number_format
+            for row in range(2, len(ordered) + 2):
+                worksheet.cell(row=row, column=offset).number_format = number_format
+
+
 def _write_rows(frame: Any, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
@@ -430,7 +579,7 @@ def _write_rows(frame: Any, path: Path) -> None:
 
 def _load_dataframe(
     dataset_id: UUID, meta: dict[str, Any], request: SyntheticRequest
-) -> Any:
+) -> tuple[Any, dict[int, list[str | None]]]:
     """Load all dataset rows and cast them according to the chosen sdtypes."""
     import pandas as pd
 
@@ -452,7 +601,7 @@ def _load_dataframe(
             raise ValueError(f"Unknown column index: {index}")
         data[names[index]] = _cast_column(config.sdtype, raw[index])
 
-    return pd.DataFrame(data)
+    return pd.DataFrame(data), raw
 
 
 def _build_metadata(meta: dict[str, Any], request: SyntheticRequest) -> Any:
@@ -809,6 +958,166 @@ def _postprocess_address(
     return frame
 
 
+def _phone_digits(value: Any) -> str:
+    return re.sub(r"\D", "", str(value))
+
+
+def _phone_templates(values: Any) -> list[_PhoneTemplate]:
+    """Infer the source phone shapes, preserving fixed digits and separators."""
+    grouped: dict[str, list[str]] = {}
+    checked = 0
+    for raw in values:
+        if checked >= _FORMAT_SAMPLE_LIMIT:
+            break
+        if raw is None:
+            continue
+        text = str(raw).strip()
+        if not text:
+            continue
+        digits = _phone_digits(text)
+        if not 7 <= len(digits) <= 15:
+            continue
+        template = re.sub(r"\d", "9", text)
+        grouped.setdefault(template, []).append(digits)
+        checked += 1
+
+    profiles: list[_PhoneTemplate] = []
+    for template, digit_values in grouped.items():
+        length = len(digit_values[0])
+        if any(len(value) != length for value in digit_values):
+            continue
+        columns = [set(value[index] for value in digit_values) for index in range(length)]
+        fixed = tuple(
+            next(iter(choices)) if len(choices) == 1 else None for choices in columns
+        )
+        variable_positions = [
+            index for index, choices in enumerate(columns) if len(choices) > 1
+        ]
+        leading_position = variable_positions[0] if variable_positions else None
+        leading = (
+            tuple(sorted(value[leading_position] for value in digit_values))
+            if leading_position is not None
+            else ()
+        )
+        profiles.append(
+            _PhoneTemplate(
+                template=template,
+                fixed=fixed,
+                leading_position=leading_position,
+                leading=leading,
+                weight=len(digit_values),
+            )
+        )
+    return profiles
+
+
+def _render_phone_digits(profile: _PhoneTemplate, digits: list[str]) -> str:
+    rendered: list[str] = []
+    digit_index = 0
+    for char in profile.template:
+        if char == "9":
+            rendered.append(digits[digit_index])
+            digit_index += 1
+        else:
+            rendered.append(char)
+    return "".join(rendered)
+
+
+def _render_phone(profile: _PhoneTemplate) -> tuple[str, str]:
+    digits: list[str] = []
+    for position, fixed in enumerate(profile.fixed):
+        if fixed is not None:
+            digits.append(fixed)
+        elif position == profile.leading_position and profile.leading:
+            digits.append(random.choice(profile.leading))
+        else:
+            digits.append(str(random.randint(0, 9)))
+    return _render_phone_digits(profile, digits), "".join(digits)
+
+
+def _generate_phone(profiles: list[_PhoneTemplate], forbidden: set[str]) -> str:
+    """Generate a phone number matching the source shape, avoiding exact reuse."""
+    profile = profiles[0]
+    rendered = ""
+    digits = ""
+    for _ in range(_PHONE_RETRY_LIMIT):
+        profile = random.choices(
+            profiles, weights=[profile.weight for profile in profiles], k=1
+        )[0]
+        rendered, digits = _render_phone(profile)
+        if digits not in forbidden:
+            return rendered
+
+    if not digits or digits not in forbidden:
+        return rendered
+
+    mutable = list(digits)
+    position = next(
+        (
+            index
+            for index in range(len(mutable) - 1, -1, -1)
+            if profile.fixed[index] is None
+        ),
+        len(mutable) - 1,
+    )
+    for _ in range(10):
+        mutable[position] = str(random.randint(0, 9))
+        candidate = "".join(mutable)
+        if candidate not in forbidden:
+            return _render_phone_digits(profile, mutable)
+    return _render_phone_digits(profile, mutable)
+
+
+def _postprocess_phone(
+    synthetic: Any,
+    original_df: Any,
+    meta: dict[str, Any],
+    request: SyntheticRequest,
+    names: dict[int, str],
+) -> Any:
+    """Replace phone numbers with values that follow the source format."""
+    import pandas as pd
+
+    if synthetic is None or len(synthetic) == 0:
+        return synthetic
+    frame = synthetic.copy()
+    column_meta = {column["index"]: column for column in meta.get("columns", [])}
+
+    for config in request.columns:
+        index = config.index
+        if column_meta.get(index, {}).get("detected_type") != "PHONE":
+            continue
+        if request.primary_key == index:
+            continue
+        if config.sdtype.strip() != "phone_number" or not config.pii:
+            continue
+        name = names.get(index)
+        if name is None or name not in frame.columns:
+            continue
+        if original_df is None or name not in getattr(original_df, "columns", []):
+            continue
+
+        source = original_df[name]
+        profiles = _phone_templates(source)
+        if not profiles:
+            continue
+        forbidden = {
+            _phone_digits(value)
+            for value in source.dropna()
+            if 7 <= len(_phone_digits(value)) <= 15
+        }
+
+        generated: list[Any] = []
+        for value in frame[name]:
+            if pd.isna(value):
+                generated.append(value)
+                continue
+            generated.append(_generate_phone(profiles, forbidden))
+        frame[name] = generated
+
+    return frame
+
+
 def _postprocess_nric(
     synthetic: Any,
     original_df: Any,
@@ -916,7 +1225,21 @@ def _run_job(
     try:
         with _LOCK:
             job.update(phase="Loading data", progress=0.05)
-        data = _load_dataframe(dataset_id, meta, request)
+        data, raw = _load_dataframe(dataset_id, meta, request)
+        names = _column_names(meta)
+        numeric_formats: dict[str, _NumericFormat] = {}
+        for cfg in request.columns:
+            if request.primary_key == cfg.index:
+                continue
+            if cfg.sdtype.strip() != "numerical":
+                continue
+            cname = names.get(cfg.index)
+            if not cname:
+                continue
+            number_format = _numeric_format(raw.get(cfg.index, []))
+            if number_format is not None:
+                numeric_formats[cname] = number_format
+        del raw
 
         with _LOCK:
             job.update(phase="Preparing metadata", progress=0.25)
@@ -926,7 +1249,6 @@ def _run_job(
             job.update(phase="Training model", progress=0.4)
         from sdv.single_table import GaussianCopulaSynthesizer
 
-        names = _column_names(meta)
         numerical_distributions: dict[str, str] = {}
         for cfg in request.columns:
             if request.primary_key == cfg.index:
@@ -953,15 +1275,23 @@ def _run_job(
         )
         synthetic = _postprocess_nric(synthetic, data, meta, request, names)
         synthetic = _postprocess_address(synthetic, data, meta, request, names)
+        synthetic = _postprocess_phone(synthetic, data, meta, request, names)
 
         with _LOCK:
             job.update(phase="Writing file", progress=0.9)
         export_path = storage.synthetic_output_path(dataset_id, job_id)
         export_path.parent.mkdir(parents=True, exist_ok=True)
-        synthetic.to_excel(export_path, index=False)
+        _write_excel(synthetic, export_path, names, request, numeric_formats)
+
         ordered = synthetic[
             [names[config.index] for config in request.columns]
-        ]
+        ].copy()
+        for cname, number_format in numeric_formats.items():
+            if cname in ordered.columns:
+                ordered[cname] = [
+                    _format_numeric(value, number_format)
+                    for value in ordered[cname]
+                ]
         _write_rows(ordered, storage.synthetic_rows_path(dataset_id, job_id))
 
         stem = Path(str(meta.get("filename") or "dataset")).stem
