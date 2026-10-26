@@ -1,6 +1,7 @@
 import {
   BarChart3Icon,
   DatabaseIcon,
+  InfoIcon,
   ShieldCheckIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -15,12 +16,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
   EvaluationProperty,
   EvaluationReport,
   EvaluationTable,
   SyntheticEvaluation,
 } from "@/features/datasets/types";
+
+const COLUMN_PAIR_HELP: Record<string, string> = {
+  "Real Correlation":
+    "Pearson correlation in the original data for numeric or datetime column pairs. Ranges from -1 to 1; values near ±1 indicate a strong linear relationship. Blank for pairs evaluated as categorical.",
+  "Synthetic Correlation":
+    "Pearson correlation for the same pair in the generated data. Compare it with Real Correlation to see whether the synthetic data preserved the relationship.",
+  "Real Association":
+    "Cramér's V association in the original data for categorical or mixed/binned column pairs. Ranges from 0 (independent) to 1 (strongly related). Blank when both columns use the correlation metric.",
+  "Meets Threshold?":
+    "Whether the original relationship is strong enough to count toward the Column Pair Trends score. Numeric pairs need |real correlation| > 0.5; association pairs need real association > 0.3. Pairs that do not meet the threshold are excluded from the average.",
+};
 
 function asPercent(score: number | null): string {
   if (score === null) return "—";
@@ -47,6 +65,35 @@ function formatCell(
       : value.toFixed(3);
   }
   return String(value);
+}
+
+function ColumnHeader({ column }: { column: string }) {
+  const help = COLUMN_PAIR_HELP[column];
+  if (!help) return <>{column}</>;
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      {column}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={`About ${column}`}
+            className="inline-flex size-4 shrink-0 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <InfoIcon className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          sideOffset={4}
+          className="max-w-72 leading-relaxed"
+        >
+          {help}
+        </TooltipContent>
+      </Tooltip>
+    </span>
+  );
 }
 
 function SummaryCard({
@@ -87,7 +134,7 @@ function DetailsTable({ table }: { table: EvaluationTable }) {
                 key={column}
                 className="border-b border-border/60 px-3 py-2 text-left font-medium text-muted-foreground"
               >
-                {column}
+                <ColumnHeader column={column} />
               </th>
             ))}
           </tr>
@@ -161,30 +208,32 @@ export function EvaluationReport({
     : `${evaluation.sample_rows.toLocaleString()} rows evaluated`;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="grid gap-4 md:grid-cols-3">
-        <SummaryCard
-          icon={BarChart3Icon}
-          label="Quality score"
-          value={asPercent(evaluation.quality.score)}
-          description="Column shapes and pair trends"
-        />
-        <SummaryCard
-          icon={ShieldCheckIcon}
-          label="Diagnostic score"
-          value={asPercent(evaluation.diagnostic.score)}
-          description="Validity and table structure"
-        />
-        <SummaryCard
-          icon={DatabaseIcon}
-          label="Rows evaluated"
-          value={evaluation.sample_rows.toLocaleString()}
-          description={sampleDescription}
-        />
-      </div>
+    <TooltipProvider>
+      <div className="flex flex-col gap-5">
+        <div className="grid gap-4 md:grid-cols-3">
+          <SummaryCard
+            icon={BarChart3Icon}
+            label="Quality score"
+            value={asPercent(evaluation.quality.score)}
+            description="Column shapes and pair trends"
+          />
+          <SummaryCard
+            icon={ShieldCheckIcon}
+            label="Diagnostic score"
+            value={asPercent(evaluation.diagnostic.score)}
+            description="Validity and table structure"
+          />
+          <SummaryCard
+            icon={DatabaseIcon}
+            label="Rows evaluated"
+            value={evaluation.sample_rows.toLocaleString()}
+            description={sampleDescription}
+          />
+        </div>
 
-      <ReportSection report={evaluation.quality} />
-      <ReportSection report={evaluation.diagnostic} />
-    </div>
+        <ReportSection report={evaluation.quality} />
+        <ReportSection report={evaluation.diagnostic} />
+      </div>
+    </TooltipProvider>
   );
 }
