@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { SyntheticPlot } from "@/components/synthetic/synthetic-plot";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -128,12 +127,6 @@ function PropertyCard({ property }: { property: EvaluationProperty }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Progress value={(property.score ?? 0) * 100} />
-        {property.plot && (
-          <SyntheticPlot
-            figure={property.plot}
-            className="h-96 w-full overflow-hidden rounded-md border border-border/40 bg-background/40"
-          />
-        )}
         <DetailsTable table={property.details} />
       </CardContent>
     </Card>

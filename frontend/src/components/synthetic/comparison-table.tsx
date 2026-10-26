@@ -1,10 +1,13 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
+import type { RefObject } from "react";
 
+import { cn } from "@/lib/utils";
 import type {
   ComparisonColumn,
   ComparisonRow,
 } from "@/features/datasets/types";
+import type { VirtualItem } from "@tanstack/react-virtual";
 
 const ROW_HEIGHT = 36;
 const COLUMN_WIDTH = 200;
@@ -21,44 +24,41 @@ interface ComparisonTableProps {
   onLoadMore: () => void;
 }
 
-export function ComparisonTable({
+interface ComparisonPaneProps {
+  paneRef: RefObject<HTMLDivElement | null>;
+  onScroll: () => void;
+  columns: ComparisonColumn[];
+  rows: ComparisonRow[];
+  valuesKey: "original" | "synthetic";
+  label: string;
+  total: number;
+  virtualItems: VirtualItem[];
+  totalSize: number;
+  isFetchingNextPage: boolean;
+  synthetic?: boolean;
+}
+
+function ComparisonPane({
+  paneRef,
+  onScroll,
   columns,
   rows,
-  originalTotal,
-  syntheticTotal,
-  hasNextPage,
+  valuesKey,
+  label,
+  total,
+  virtualItems,
+  totalSize,
   isFetchingNextPage,
-  onLoadMore,
-}: ComparisonTableProps) {
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => bodyRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 14,
-  });
-
-  const virtualItems = rowVirtualizer.getVirtualItems();
-  const lastItem = virtualItems[virtualItems.length - 1];
-
-  useEffect(() => {
-    if (!lastItem) return;
-    if (
-      hasNextPage &&
-      !isFetchingNextPage &&
-      lastItem.index >= rows.length - LOAD_MORE_THRESHOLD
-    ) {
-      onLoadMore();
-    }
-  }, [lastItem, hasNextPage, isFetchingNextPage, rows.length, onLoadMore]);
-
+  synthetic = false,
+}: ComparisonPaneProps) {
   const groupWidth = columns.length * COLUMN_WIDTH;
-  const contentWidth = GUTTER_WIDTH + groupWidth * 2;
+  const contentWidth = GUTTER_WIDTH + groupWidth;
 
   return (
     <div
-      ref={bodyRef}
-      className="min-h-0 flex-1 overflow-auto rounded-lg border border-border/60"
+      ref={paneRef}
+      onScroll={onScroll}
+      className="min-h-0 min-w-0 overflow-auto"
     >
       <div style={{ width: contentWidth }}>
         <div className="sticky top-0 z-20 border-b border-border/60 bg-background">
@@ -71,15 +71,14 @@ export function ComparisonTable({
             </div>
             <div
               style={{ width: groupWidth }}
-              className="flex h-full shrink-0 items-center px-3 text-muted-foreground"
+              className={cn(
+                "flex h-full shrink-0 items-center px-3",
+                synthetic
+                  ? "border-l-2 border-primary/30 bg-primary/5 text-primary"
+                  : "text-muted-foreground",
+              )}
             >
-              Original · {originalTotal.toLocaleString()} rows
-            </div>
-            <div
-              style={{ width: groupWidth }}
-              className="flex h-full shrink-0 items-center border-l-2 border-primary/30 bg-primary/5 px-3 text-primary"
-            >
-              Synthetic · {syntheticTotal.toLocaleString()} rows
+              {label} · {total.toLocaleString()} rows
             </div>
           </div>
           <div className="flex">
@@ -91,23 +90,12 @@ export function ComparisonTable({
             </div>
             {columns.map((column) => (
               <div
-                key={`original-${column.index}`}
+                key={`${valuesKey}-${column.index}`}
                 style={{ width: COLUMN_WIDTH }}
-                className="flex h-10 shrink-0 items-center border-r border-border/40 px-2"
-              >
-                <span
-                  className="truncate text-xs font-medium"
-                  title={column.header}
-                >
-                  {column.header}
-                </span>
-              </div>
-            ))}
-            {columns.map((column) => (
-              <div
-                key={`synthetic-${column.index}`}
-                style={{ width: COLUMN_WIDTH }}
-                className="flex h-10 shrink-0 items-center border-r border-border/40 bg-primary/5 px-2"
+                className={cn(
+                  "flex h-10 shrink-0 items-center border-r border-border/40 px-2",
+                  synthetic && "bg-primary/5",
+                )}
               >
                 <span
                   className="truncate text-xs font-medium"
@@ -120,10 +108,7 @@ export function ComparisonTable({
           </div>
         </div>
 
-        <div
-          className="relative"
-          style={{ height: rowVirtualizer.getTotalSize() }}
-        >
+        <div className="relative" style={{ height: totalSize }}>
           {virtualItems.map((item) => {
             const row = rows[item.index];
             return (
@@ -144,26 +129,16 @@ export function ComparisonTable({
                   {item.index + 1}
                 </div>
                 {columns.map((column, position) => {
-                  const value = row?.original[position];
+                  const value = row?.[valuesKey][position];
                   return (
                     <div
-                      key={`original-${column.index}`}
+                      key={`${valuesKey}-${column.index}`}
                       style={{ width: COLUMN_WIDTH }}
                       title={value ?? undefined}
-                      className="flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90"
-                    >
-                      <span className="truncate">{value ?? ""}</span>
-                    </div>
-                  );
-                })}
-                {columns.map((column, position) => {
-                  const value = row?.synthetic[position];
-                  return (
-                    <div
-                      key={`synthetic-${column.index}`}
-                      style={{ width: COLUMN_WIDTH }}
-                      title={value ?? undefined}
-                      className="flex shrink-0 items-center truncate border-r border-border/40 bg-primary/5 px-2 text-xs text-foreground/90"
+                      className={cn(
+                        "flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90",
+                        synthetic && "bg-primary/5",
+                      )}
                     >
                       <span className="truncate">{value ?? ""}</span>
                     </div>
@@ -173,18 +148,103 @@ export function ComparisonTable({
             );
           })}
         </div>
-      </div>
 
-      {rows.length === 0 && (
-        <p className="p-6 text-center text-sm text-muted-foreground">
-          No rows to compare.
-        </p>
-      )}
-      {isFetchingNextPage && (
-        <p className="border-t border-border/40 p-3 text-center text-xs text-muted-foreground">
-          Loading more rows…
-        </p>
-      )}
+        {isFetchingNextPage && (
+          <p className="border-t border-border/40 p-3 text-center text-xs text-muted-foreground">
+            Loading more rows…
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ComparisonTable({
+  columns,
+  rows,
+  originalTotal,
+  syntheticTotal,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+}: ComparisonTableProps) {
+  const originalRef = useRef<HTMLDivElement>(null);
+  const syntheticRef = useRef<HTMLDivElement>(null);
+
+  const originalVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => originalRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 14,
+  });
+  const syntheticVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => syntheticRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 14,
+  });
+
+  const originalItems = originalVirtualizer.getVirtualItems();
+  const lastItem = originalItems[originalItems.length - 1];
+
+  useEffect(() => {
+    if (!lastItem) return;
+    if (
+      hasNextPage &&
+      !isFetchingNextPage &&
+      lastItem.index >= rows.length - LOAD_MORE_THRESHOLD
+    ) {
+      onLoadMore();
+    }
+  }, [lastItem, hasNextPage, isFetchingNextPage, rows.length, onLoadMore]);
+
+  const syncScroll = (
+    source: RefObject<HTMLDivElement | null>,
+    target: RefObject<HTMLDivElement | null>,
+  ) => {
+    const sourceElement = source.current;
+    const targetElement = target.current;
+    if (!sourceElement || !targetElement) return;
+    if (Math.abs(targetElement.scrollTop - sourceElement.scrollTop) > 1) {
+      targetElement.scrollTop = sourceElement.scrollTop;
+    }
+  };
+
+  if (rows.length === 0) {
+    return (
+      <p className="p-6 text-center text-sm text-muted-foreground">
+        No rows to compare.
+      </p>
+    );
+  }
+
+  return (
+    <div className="grid min-h-0 flex-1 grid-cols-2 divide-x divide-border/60 overflow-hidden rounded-lg border border-border/60">
+      <ComparisonPane
+        paneRef={originalRef}
+        onScroll={() => syncScroll(originalRef, syntheticRef)}
+        columns={columns}
+        rows={rows}
+        valuesKey="original"
+        label="Original"
+        total={originalTotal}
+        virtualItems={originalItems}
+        totalSize={originalVirtualizer.getTotalSize()}
+        isFetchingNextPage={isFetchingNextPage}
+      />
+      <ComparisonPane
+        paneRef={syntheticRef}
+        onScroll={() => syncScroll(syntheticRef, originalRef)}
+        columns={columns}
+        rows={rows}
+        valuesKey="synthetic"
+        label="Synthetic"
+        total={syntheticTotal}
+        virtualItems={syntheticVirtualizer.getVirtualItems()}
+        totalSize={syntheticVirtualizer.getTotalSize()}
+        isFetchingNextPage={isFetchingNextPage}
+        synthetic
+      />
     </div>
   );
 }
