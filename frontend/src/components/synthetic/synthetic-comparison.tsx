@@ -63,11 +63,14 @@ function ErrorPanel({
 
 function EvaluationLoading() {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <Skeleton className="h-56 w-full" />
+        <Skeleton className="h-56 w-full" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Skeleton className="h-72 w-full" />
+        <Skeleton className="h-72 w-full" />
       </div>
       <Card size="sm">
         <CardContent className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -190,8 +193,8 @@ export function SyntheticComparisonView({
               {dataset.data.filename}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              Synthetic comparison · {status?.output_rows?.toLocaleString() ?? 0}{" "}
-              generated rows
+              Original {dataset.data.total_rows.toLocaleString()} rows · Synthetic{" "}
+              {status?.output_rows?.toLocaleString() ?? 0} rows
             </p>
           </div>
           <Badge variant={failed ? "destructive" : "secondary"}>
@@ -273,7 +276,7 @@ export function SyntheticComparisonView({
           </Card>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto p-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto p-4 lg:p-6">
           {evaluation.isPending ? (
             <EvaluationLoading />
           ) : evaluation.isError ? (
@@ -301,15 +304,19 @@ export function SyntheticComparisonView({
               </CardContent>
             </Card>
           ) : evaluation.data ? (
-            <EvaluationReport evaluation={evaluation.data} />
+            <EvaluationReport
+              evaluation={evaluation.data}
+              columnNames={firstPage?.columns.map((column) => column.header)}
+            />
           ) : null}
 
-          <Card className="flex h-[32rem] shrink-0 flex-col gap-0 py-0">
+          <Card className="flex h-[34rem] shrink-0 flex-col gap-0 py-0 lg:h-[38rem]">
             <CardHeader className="border-b border-border/60 py-3">
               <CardTitle>Side-by-side preview</CardTitle>
               <CardDescription>
-                Original and generated rows paired by row index. Scroll the
-                table to load more.
+                Original and generated rows are paired by position, not matched
+                records. Scroll to load more; on small screens use the pane
+                switch.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex min-h-0 flex-1 flex-col p-0">
