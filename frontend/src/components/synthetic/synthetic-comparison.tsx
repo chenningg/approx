@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
+  BarChart2Icon,
+  BrainIcon,
   DownloadIcon,
   Loader2Icon,
   SparklesIcon,
@@ -10,8 +12,10 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { ColumnPlot } from "@/components/synthetic/column-plot";
 import { ComparisonTable } from "@/components/synthetic/comparison-table";
 import { EvaluationReport } from "@/components/synthetic/evaluation-report";
+import { MLEvaluation } from "@/components/synthetic/ml-evaluation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +27,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { downloadSynthetic } from "@/features/datasets/api";
 import {
   datasetQueryOptions,
@@ -277,38 +282,85 @@ export function SyntheticComparisonView({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto p-4 lg:p-6">
-          {evaluation.isPending ? (
-            <EvaluationLoading />
-          ) : evaluation.isError ? (
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <AlertCircleIcon className="size-4 text-destructive" />
-                  Could not evaluate synthetic data
-                </CardTitle>
-                <CardDescription>
-                  {evaluation.error instanceof Error
-                    ? evaluation.error.message
-                    : "Something went wrong."}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void evaluation.refetch()}
-                >
-                  Retry evaluation
-                </Button>
-              </CardContent>
-            </Card>
-          ) : evaluation.data ? (
-            <EvaluationReport
-              evaluation={evaluation.data}
-              columnNames={firstPage?.columns.map((column) => column.header)}
-            />
-          ) : null}
+          <Tabs defaultValue="evaluation" className="flex flex-col flex-1">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="evaluation">
+                <BarChart2Icon className="size-3.5 mr-1.5" />
+                Evaluation Report
+              </TabsTrigger>
+              <TabsTrigger value="column-plot">
+                <BarChart2Icon className="size-3.5 mr-1.5" />
+                Column Distributions
+              </TabsTrigger>
+              <TabsTrigger value="downstream">
+                <BrainIcon className="size-3.5 mr-1.5" />
+                Downstream Evaluation
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="evaluation" className="flex-1 mt-4 focus-visible:ring-0">
+              {evaluation.isPending ? (
+                <EvaluationLoading />
+              ) : evaluation.isError ? (
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <AlertCircleIcon className="size-4 text-destructive" />
+                      Could not evaluate synthetic data
+                    </CardTitle>
+                    <CardDescription>
+                      {evaluation.error instanceof Error
+                        ? evaluation.error.message
+                        : "Something went wrong."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void evaluation.refetch()}
+                    >
+                      Retry evaluation
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : evaluation.data ? (
+                <EvaluationReport
+                  evaluation={evaluation.data}
+                  columnNames={firstPage?.columns.map((column) => column.header)}
+                />
+              ) : null}
+            </TabsContent>
+
+            <TabsContent value="column-plot" className="flex-1 mt-4 focus-visible:ring-0">
+              {firstPage ? (
+                <ColumnPlot
+                  datasetId={id}
+                  jobId={jobId}
+                  columnNames={firstPage.columns.map((c) => c.header)}
+                />
+              ) : (
+                <div className="flex h-64 items-center justify-center text-muted-foreground">
+                  <p>No data available for column plots</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="downstream" className="flex-1 mt-4 focus-visible:ring-0">
+              {firstPage ? (
+                <MLEvaluation
+                  datasetId={id}
+                  jobId={jobId}
+                  columnNames={firstPage.columns.map((c) => c.header)}
+                />
+              ) : (
+                <div className="flex h-64 items-center justify-center text-muted-foreground">
+                  <p>No data available for downstream evaluation</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           <Card className="flex h-[34rem] shrink-0 flex-col gap-0 py-0 lg:h-[38rem]">
             <CardHeader className="border-b border-border/60 py-3">

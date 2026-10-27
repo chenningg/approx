@@ -2,7 +2,10 @@ import { config } from '@/config'
 
 import type {
   ColumnConfig,
+  ColumnPlotResponse,
   DatasetPreview,
+  MLEvaluationRequest,
+  MLEvaluationResponse,
   ProcessStatus,
   RowsPage,
   SyntheticComparison,
@@ -290,4 +293,53 @@ export async function downloadSynthetic(
   link.click()
   link.remove()
   URL.revokeObjectURL(url)
+}
+
+export async function getSyntheticColumnPlot(
+  id: string,
+  jobId: string,
+  columnName: string,
+): Promise<ColumnPlotResponse> {
+  const params = new URLSearchParams({
+    column_name: columnName,
+  })
+
+  const response = await fetch(
+    `${config.apiBaseUrl}/datasets/${id}/synthetic/${jobId}/column-plot?${params.toString()}`,
+    { credentials: 'include' },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      (await readDetail(response)) ??
+        `Failed to load column plot (status ${response.status})`,
+    )
+  }
+
+  return (await response.json()) as ColumnPlotResponse
+}
+
+export async function runSyntheticMLEvaluation(
+  id: string,
+  jobId: string,
+  request: MLEvaluationRequest,
+): Promise<MLEvaluationResponse> {
+  const response = await fetch(
+    `${config.apiBaseUrl}/datasets/${id}/synthetic/${jobId}/ml-evaluation`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      (await readDetail(response)) ??
+        `Failed to run ML evaluation (status ${response.status})`,
+    )
+  }
+
+  return (await response.json()) as MLEvaluationResponse
 }

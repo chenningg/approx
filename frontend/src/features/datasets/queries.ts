@@ -8,6 +8,8 @@ import {
   getSyntheticDefaults,
   getSyntheticEvaluation,
   getSyntheticStatus,
+  getSyntheticColumnPlot,
+  runSyntheticMLEvaluation,
 } from './api'
 
 export const ROWS_PAGE_SIZE = 200
@@ -77,4 +79,26 @@ export const syntheticEvaluationQueryOptions = (
     queryKey: ['datasets', id, 'synthetic', jobId, 'evaluation'],
     queryFn: () => getSyntheticEvaluation(id, jobId),
     staleTime: Infinity,
+  })
+
+export const syntheticColumnPlotQueryOptions = (
+  id: string,
+  jobId: string,
+  columnName: string,
+) =>
+  queryOptions({
+    queryKey: ['datasets', id, 'synthetic', jobId, 'column-plot', columnName],
+    queryFn: () => getSyntheticColumnPlot(id, jobId, columnName),
+    enabled: !!columnName,
+    staleTime: Infinity,
+  })
+
+export const syntheticMLEvaluationMutationOptions = (
+  id: string,
+  jobId: string,
+) =>
+  queryOptions({
+    queryKey: ['datasets', id, 'synthetic', jobId, 'ml-evaluation'],
+    queryFn: () => runSyntheticMLEvaluation(id, jobId, { target_column: '', test_size: 0.2 }),
+    enabled: false, // Manual trigger only
   })

@@ -367,3 +367,33 @@ export interface SyntheticEvaluation {
   synthetic_rows: number
   generated_at: string
 }
+
+export interface ColumnPlotResponse {
+  plot: Record<string, unknown> | null
+}
+
+export interface MLEvaluationRequest {
+  target_column: string
+  test_size: number
+}
+
+export interface MLEvaluationResponse {
+  target_column: string
+  task_type: 'classification' | 'regression'
+  n_features: number
+  n_samples_original: number
+  n_samples_synthetic: number
+  train_size_original: number
+  test_size_original: number
+  train_size_synthetic: number
+  test_size_synthetic: number
+  class_labels: string[] | null
+  original_train_original_test: Record<string, number>
+  original_train_synthetic_test: Record<string, number>
+  synthetic_train_synthetic_test: Record<string, number>
+  synthetic_train_original_test: Record<string, number>
+  confusion_matrix_orig_train_orig_test: number[][] | null
+  confusion_matrix_orig_train_synth_test: number[][] | null
+  confusion_matrix_synth_train_synth_test: number[][] | null
+  confusion_matrix_synth_train_orig_test: number[][] | null
+}

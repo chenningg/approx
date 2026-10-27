@@ -204,3 +204,37 @@ class SyntheticEvaluation(BaseModel):
     original_rows: int
     synthetic_rows: int
     generated_at: str
+
+
+class ColumnPlotRequest(BaseModel):
+    column_name: str
+
+
+class ColumnPlotResponse(BaseModel):
+    plot: dict[str, Any] | None = None
+
+
+class MLEvaluationRequest(BaseModel):
+    target_column: str
+    test_size: float = Field(default=0.2, ge=0.1, le=0.5)
+
+
+class MLEvaluationResponse(BaseModel):
+    target_column: str
+    task_type: str
+    n_features: int
+    n_samples_original: int
+    n_samples_synthetic: int
+    train_size_original: int
+    test_size_original: int
+    train_size_synthetic: int
+    test_size_synthetic: int
+    class_labels: list[str] | None = None
+    original_train_original_test: dict[str, float]
+    original_train_synthetic_test: dict[str, float]
+    synthetic_train_synthetic_test: dict[str, float]
+    synthetic_train_original_test: dict[str, float]
+    confusion_matrix_orig_train_orig_test: list[list[int]] | None = None
+    confusion_matrix_orig_train_synth_test: list[list[int]] | None = None
+    confusion_matrix_synth_train_synth_test: list[list[int]] | None = None
+    confusion_matrix_synth_train_orig_test: list[list[int]] | None = None

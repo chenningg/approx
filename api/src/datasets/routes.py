@@ -17,6 +17,10 @@ from src.datasets.dtos import (
     SyntheticEvaluation,
     SyntheticRequest,
     SyntheticStatus,
+    ColumnPlotRequest,
+    ColumnPlotResponse,
+    MLEvaluationRequest,
+    MLEvaluationResponse,
 )
 from src.datasets.service import DatasetNotFoundError
 
@@ -291,3 +295,69 @@ async def export_synthetic(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         filename=filename,
     )
+
+
+@datasets_router.get(
+    "/{dataset_id}/synthetic/{job_id}/column-plot",
+    response_model=ColumnPlotResponse,
+)
+async def get_synthetic_column_plot(
+    dataset_id: UUID,
+    job_id: str,
+    auth_user: AuthUserDep,
+    column_name: str = Query(..., description="Name of the column to plot"),
+) -> ColumnPlotResponse:
+    try:
+        plot = await run_in_threadpool(
+            comparison.get_column_plot, dataset_id, job_id, column_name
+        )
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Synthetic generation job not found",
+        ) from exc
+    except comparison.ComparisonUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    except comparison.EvaluationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate column plot: {exc}",
+        ) from exc
+    return ColumnPlotResponse(plot=plot)
+
+
+@datasets_router.post(
+    "/{dataset_id}/synthetic/{job_id}/ml-evaluation",
+    response_model=MLEvaluationResponse,
+)
+async def run_synthetic_ml_evaluation(
+    dataset_id: UUID,
+    job_id: str,
+    request: MLEvaluationRequest,
+    auth_user: AuthUserDep,
+) -> MLEvaluationResponse:
+    try:
+        result = await run_in_threadpool(
+            comparison.run_ml_evaluation,
+            dataset_id,
+            job_id,
+            request.target_column,
+            request.test_size,
+        )
+    except DatasetNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Synthetic generation job not found",
+        ) from exc
+    except comparison.ComparisonUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    except comparison.EvaluationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to run ML evaluation: {exc}",
+        ) from exc
+    return MLEvaluationResponse(**result)
