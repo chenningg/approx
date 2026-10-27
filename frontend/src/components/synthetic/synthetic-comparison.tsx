@@ -211,8 +211,8 @@ export function SyntheticComparisonView({
               {dataset.data.filename}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              Original {dataset.data.total_rows.toLocaleString()} rows · Synthetic{" "}
-              {status?.output_rows?.toLocaleString() ?? 0} rows
+              Original {dataset.data.total_rows.toLocaleString()} rows ·
+              Synthetic {status?.output_rows?.toLocaleString() ?? 0} rows
             </p>
           </div>
           <Badge variant={failed ? "destructive" : "secondary"}>
@@ -296,7 +296,7 @@ export function SyntheticComparisonView({
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto p-4 lg:p-6">
           <Tabs defaultValue="evaluation" className="flex flex-col flex-1">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-3 gap-x-1 px-1">
               <TabsTrigger
                 value="evaluation"
                 className="cursor-pointer transition-all hover:bg-accent hover:text-foreground"
@@ -320,7 +320,10 @@ export function SyntheticComparisonView({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="evaluation" className="flex-1 mt-4 focus-visible:ring-0">
+            <TabsContent
+              value="evaluation"
+              className="flex-1 mt-4 focus-visible:ring-0"
+            >
               {evaluation.isPending ? (
                 <EvaluationLoading />
               ) : evaluation.isError ? (
@@ -350,12 +353,17 @@ export function SyntheticComparisonView({
               ) : evaluation.data ? (
                 <EvaluationReport
                   evaluation={evaluation.data}
-                  columnNames={firstPage?.columns.map((column) => column.header)}
+                  columnNames={firstPage?.columns.map(
+                    (column) => column.header,
+                  )}
                 />
               ) : null}
             </TabsContent>
 
-            <TabsContent value="column-plot" className="flex-1 mt-4 focus-visible:ring-0">
+            <TabsContent
+              value="column-plot"
+              className="flex-1 mt-4 focus-visible:ring-0"
+            >
               {firstPage ? (
                 <ColumnPlot
                   datasetId={id}
@@ -369,7 +377,10 @@ export function SyntheticComparisonView({
               )}
             </TabsContent>
 
-            <TabsContent value="downstream" className="flex-1 mt-4 focus-visible:ring-0">
+            <TabsContent
+              value="downstream"
+              className="flex-1 mt-4 focus-visible:ring-0"
+            >
               {firstPage ? (
                 <MLEvaluation
                   datasetId={id}
