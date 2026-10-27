@@ -9,7 +9,6 @@ import type {
   ComparisonRow,
 } from "@/features/datasets/types";
 import { formatDisplayDate } from "@/features/datasets/dates";
-import type { VirtualItem } from "@tanstack/react-virtual";
 
 const ROW_HEIGHT = 36;
 const COLUMN_WIDTH = 200;
@@ -36,10 +35,10 @@ interface ComparisonPaneProps {
   valuesKey: "original" | "synthetic";
   label: string;
   total: number;
-  virtualItems: VirtualItem[];
-  totalSize: number;
+  rowHeight: number;
   isFetchingNextPage: boolean;
   synthetic?: boolean;
+  onLastItemIndex?: (index: number) => void;
 }
 
 const ComparisonPane = memo(function ComparisonPane({
@@ -50,13 +49,36 @@ const ComparisonPane = memo(function ComparisonPane({
   valuesKey,
   label,
   total,
-  virtualItems,
-  totalSize,
+  rowHeight,
   isFetchingNextPage,
   synthetic = false,
+  onLastItemIndex,
 }: ComparisonPaneProps) {
   const groupWidth = columns.length * COLUMN_WIDTH;
   const contentWidth = GUTTER_WIDTH + groupWidth;
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => paneRef.current,
+    estimateSize: () => rowHeight,
+    overscan: 14,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+  const lastIndex =
+    virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : -1;
+
+  useEffect(() => {
+    if (onLastItemIndex) onLastItemIndex(lastIndex);
+  }, [onLastItemIndex, lastIndex]);
+
+  const virtualizerRef = useRef(virtualizer);
+  virtualizerRef.current = virtualizer;
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => virtualizerRef.current.measure());
+    return () => cancelAnimationFrame(frame);
+  }, [rowHeight]);
 
   const headerCellClass = cn(
     "flex h-12 shrink-0 flex-col justify-center border-r border-border/40 px-2",
@@ -120,9 +142,7 @@ const ComparisonPane = memo(function ComparisonPane({
                 >
                   {column.header}
                 </span>
-                 <span
-                   className={headerSdtypeClass}
-                 >
+                <span className={headerSdtypeClass}>
                   {column.sdtype}
                 </span>
               </div>
@@ -144,10 +164,7 @@ const ComparisonPane = memo(function ComparisonPane({
                   transform: `translateY(${item.start}px)`,
                 }}
               >
-                <div
-                  style={{ width: GUTTER_WIDTH }}
-                  className={gutterClass}
-                >
+                <div style={{ width: GUTTER_WIDTH }} className={gutterClass}>
                   {item.index + 1}
                 </div>
                 {columns.map((column, position) => {
@@ -216,69 +233,80 @@ export function ComparisonTable({
   const syntheticRef = useRef<HTMLDivElement>(null);
   const [activePane, setActivePane] = useState<PaneKey>("original");
   const [compact, setCompact] = useState(false);
+  const [originalLastIndex, setOriginalLastIndex] = useState(-1);
   const rowHeight = compact ? 30 : ROW_HEIGHT;
 
-  const originalVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => originalRef.current,
-    estimateSize: () => rowHeight,
-    overscan: 14,
-  });
-  const syntheticVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => syntheticRef.current,
-    estimateSize: () => rowHeight,
-    overscan: 14,
-  });
-
-  const originalItems = originalVirtualizer.getVirtualItems();
-  const lastItem = originalItems[originalItems.length - 1];
+  const frameRef = useRef<number | null>(null);
+  const lastSetRef = useRef<{ pane: PaneKey; top: number; left: number } | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (!lastItem) return;
-    if (
-      hasNextPage &&
-      !isFetchingNextPage &&
-      lastItem.index >= rows.length - LOAD_MORE_THRESHOLD
-    ) {
+    if (!hasNextPage || isFetchingNextPage) return;
+    if (originalLastIndex >= rows.length - LOAD_MORE_THRESHOLD) {
       onLoadMore();
     }
-  }, [lastItem, hasNextPage, isFetchingNextPage, rows.length, onLoadMore]);
+  }, [originalLastIndex, rows.length, hasNextPage, isFetchingNextPage, onLoadMore]);
+
+  const applySync = useCallback((source: PaneKey) => {
+    const sourceEl =
+      source === "original" ? originalRef.current : syntheticRef.current;
+    const targetPane: PaneKey =
+      source === "original" ? "synthetic" : "original";
+    const targetEl =
+      targetPane === "original" ? originalRef.current : syntheticRef.current;
+    if (!sourceEl || !targetEl) return;
+    lastSetRef.current = {
+      pane: targetPane,
+      top: sourceEl.scrollTop,
+      left: sourceEl.scrollLeft,
+    };
+    targetEl.scrollTop = sourceEl.scrollTop;
+    targetEl.scrollLeft = sourceEl.scrollLeft;
+  }, []);
+
+  const scheduleSync = useCallback(
+    (source: PaneKey) => {
+      if (frameRef.current !== null) return;
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null;
+        applySync(source);
+      });
+    },
+    [applySync],
+  );
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      originalVirtualizer.measure();
-      syntheticVirtualizer.measure();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [activePane, rowHeight, originalVirtualizer, syntheticVirtualizer]);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, []);
 
-  const syncScroll = useCallback(
-    (
-      source: RefObject<HTMLDivElement | null>,
-      target: RefObject<HTMLDivElement | null>,
-    ) => {
-      const sourceElement = source.current;
-      const targetElement = target.current;
-      if (!sourceElement || !targetElement) return;
-      if (Math.abs(targetElement.scrollTop - sourceElement.scrollTop) > 1) {
-        targetElement.scrollTop = sourceElement.scrollTop;
-      }
-      if (Math.abs(targetElement.scrollLeft - sourceElement.scrollLeft) > 1) {
-        targetElement.scrollLeft = sourceElement.scrollLeft;
-      }
-    },
+  const isProgrammaticScroll = useCallback((pane: PaneKey) => {
+    const el = pane === "original" ? originalRef.current : syntheticRef.current;
+    const lastSet = lastSetRef.current;
+    return (
+      !!el &&
+      !!lastSet &&
+      lastSet.pane === pane &&
+      Math.abs(el.scrollTop - lastSet.top) < 1 &&
+      Math.abs(el.scrollLeft - lastSet.left) < 1
+    );
+  }, []);
+
+  const handleOriginalScroll = useCallback(() => {
+    if (isProgrammaticScroll("original")) return;
+    scheduleSync("original");
+  }, [isProgrammaticScroll, scheduleSync]);
+
+  const handleSyntheticScroll = useCallback(() => {
+    if (isProgrammaticScroll("synthetic")) return;
+    scheduleSync("synthetic");
+  }, [isProgrammaticScroll, scheduleSync]);
+
+  const handleOriginalLastIndex = useCallback(
+    (index: number) => setOriginalLastIndex(index),
     [],
-  );
-
-  const syncFromOriginal = useCallback(
-    () => syncScroll(originalRef, syntheticRef),
-    [syncScroll],
-  );
-
-  const syncFromSynthetic = useCallback(
-    () => syncScroll(syntheticRef, originalRef),
-    [syncScroll],
   );
 
   if (rows.length === 0) {
@@ -327,15 +355,15 @@ export function ComparisonTable({
         >
           <ComparisonPane
             paneRef={originalRef}
-            onScroll={syncFromOriginal}
+            onScroll={handleOriginalScroll}
             columns={columns}
             rows={rows}
             valuesKey="original"
             label="Original"
             total={originalTotal}
-            virtualItems={originalItems}
-            totalSize={originalVirtualizer.getTotalSize()}
+            rowHeight={rowHeight}
             isFetchingNextPage={isFetchingNextPage}
+            onLastItemIndex={handleOriginalLastIndex}
           />
         </div>
         <div
@@ -346,14 +374,13 @@ export function ComparisonTable({
         >
           <ComparisonPane
             paneRef={syntheticRef}
-            onScroll={syncFromSynthetic}
+            onScroll={handleSyntheticScroll}
             columns={columns}
             rows={rows}
             valuesKey="synthetic"
             label="Synthetic"
             total={syntheticTotal}
-            virtualItems={syntheticVirtualizer.getVirtualItems()}
-            totalSize={syntheticVirtualizer.getTotalSize()}
+            rowHeight={rowHeight}
             isFetchingNextPage={isFetchingNextPage}
             synthetic
           />

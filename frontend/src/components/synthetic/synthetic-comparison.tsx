@@ -284,15 +284,24 @@ export function SyntheticComparisonView({
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto p-4 lg:p-6">
           <Tabs defaultValue="evaluation" className="flex flex-col flex-1">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="evaluation" className="cursor-pointer">
+              <TabsTrigger
+                value="evaluation"
+                className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
                 <BarChart2Icon className="size-3.5 mr-1.5" />
                 Evaluation Report
               </TabsTrigger>
-              <TabsTrigger value="column-plot" className="cursor-pointer">
+              <TabsTrigger
+                value="column-plot"
+                className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
                 <BarChart2Icon className="size-3.5 mr-1.5" />
                 Column Distributions
               </TabsTrigger>
-              <TabsTrigger value="downstream" className="cursor-pointer">
+              <TabsTrigger
+                value="downstream"
+                className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
                 <BrainIcon className="size-3.5 mr-1.5" />
                 Downstream Evaluation
               </TabsTrigger>
