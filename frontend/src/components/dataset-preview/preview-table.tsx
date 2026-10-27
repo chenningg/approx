@@ -6,6 +6,7 @@ import { DetectedTypeBadge } from './detected-type-badge'
 import { SensitivityBadge } from './sensitivity-badge'
 import { maskValue } from '@/features/datasets/masking'
 import { generalizeValue } from '@/features/datasets/generalize'
+import { formatDisplayDate } from '@/features/datasets/dates'
 import type {
   ColumnAction,
   ColumnConfig,
@@ -156,11 +157,14 @@ export function PreviewTable({
                   const redacted = showActions && config.action === 'redact'
                   const generalized =
                     showActions && config.action === 'generalize'
+                  const isDate =
+                    column.detected_type === 'DOB' || column.detected_type === 'DATE'
+                  const cellValue = formatDisplayDate(value ?? null, isDate) ?? ''
                   const display = redacted
-                    ? maskValue(column.detected_type, value ?? null, config.redact)
+                    ? maskValue(column.detected_type, cellValue, config.redact)
                     : generalized
-                      ? generalizeValue(column, value ?? null, config.generalize)
-                      : (value ?? '')
+                      ? generalizeValue(column, cellValue, config.generalize)
+                      : cellValue
                   return (
                     <div
                       key={column.index}
@@ -168,7 +172,7 @@ export function PreviewTable({
                       title={
                         redacted || generalized
                           ? undefined
-                          : (value ?? undefined)
+                          : (cellValue || undefined)
                       }
                       className={cn(
                         'flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90',

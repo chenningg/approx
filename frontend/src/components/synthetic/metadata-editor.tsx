@@ -15,6 +15,7 @@ import {
   type SyntheticDefaults,
   type SyntheticSdtype,
 } from "@/features/datasets/types";
+import { formatDisplayDate, toIsoDate } from "@/features/datasets/dates";
 
 export interface SyntheticColumnForm {
   sdtype: SyntheticSdtype;
@@ -225,6 +226,13 @@ export function MetadataEditor({
               const isPrimaryKey = form.primaryKey === column.index;
               const piiActive = piiSupported && !isPrimaryKey && value.pii;
               const rangeSupported = supportsRange(value.sdtype) && !isPrimaryKey;
+              const isDateRange = value.sdtype === "datetime";
+              const minDisplay = isDateRange
+                ? (formatDisplayDate(value.minValue, true) ?? "")
+                : value.minValue;
+              const maxDisplay = isDateRange
+                ? (formatDisplayDate(value.maxValue, true) ?? "")
+                : value.maxValue;
               return (
                 <tr
                   key={column.index}
@@ -279,30 +287,34 @@ export function MetadataEditor({
                     {rangeSupported ? (
                       <div className="flex items-center gap-1.5">
                         <Input
-                          type={value.sdtype === "datetime" ? "date" : "number"}
-                          step="any"
-                          value={value.minValue}
-                          placeholder="Min"
+                          type={isDateRange ? "text" : "number"}
+                          step={isDateRange ? undefined : "any"}
+                          value={minDisplay}
+                          placeholder={isDateRange ? "DD-MM-YYYY" : "Min"}
                           aria-label={`Minimum allowed value for ${column.header}`}
                           onChange={(event) =>
                             setColumn(column.index, {
                               ...value,
-                              minValue: event.target.value,
+                              minValue: isDateRange
+                                ? toIsoDate(event.target.value)
+                                : event.target.value,
                             })
                           }
                           className="h-7! w-[7.5rem] text-xs! tabular-nums"
                         />
                         <span className="text-muted-foreground">–</span>
                         <Input
-                          type={value.sdtype === "datetime" ? "date" : "number"}
-                          step="any"
-                          value={value.maxValue}
-                          placeholder="Max"
+                          type={isDateRange ? "text" : "number"}
+                          step={isDateRange ? undefined : "any"}
+                          value={maxDisplay}
+                          placeholder={isDateRange ? "DD-MM-YYYY" : "Max"}
                           aria-label={`Maximum allowed value for ${column.header}`}
                           onChange={(event) =>
                             setColumn(column.index, {
                               ...value,
-                              maxValue: event.target.value,
+                              maxValue: isDateRange
+                                ? toIsoDate(event.target.value)
+                                : event.target.value,
                             })
                           }
                           className="h-7! w-[7.5rem] text-xs! tabular-nums"

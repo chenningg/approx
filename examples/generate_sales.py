@@ -245,12 +245,25 @@ def generate_row(rng: random.Random) -> dict:
     }
 
 
+def _apply_dob_format(path: Path) -> None:
+    import openpyxl
+
+    wb = openpyxl.load_workbook(path)
+    ws = wb.active
+    headers = [cell.value for cell in ws[1]]
+    col = headers.index("Date Of Birth") + 1
+    for row in ws.iter_rows(min_row=2, min_col=col, max_col=col):
+        row[0].number_format = "DD-MM-YYYY"
+    wb.save(path)
+
+
 def main() -> None:
     random.seed(SEED)
     rows = [generate_row(random) for _ in range(N_ROWS)]
     df = pd.DataFrame(rows, columns=COLUMNS)
     out = Path(__file__).resolve().parent / "sales.xlsx"
     df.to_excel(out, index=False)
+    _apply_dob_format(out)
     print(f"Wrote {len(df)} rows to {out}")
 
 

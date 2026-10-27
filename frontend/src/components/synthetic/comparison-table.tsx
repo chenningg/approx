@@ -8,6 +8,7 @@ import type {
   ComparisonColumn,
   ComparisonRow,
 } from "@/features/datasets/types";
+import { formatDisplayDate } from "@/features/datasets/dates";
 import type { VirtualItem } from "@tanstack/react-virtual";
 
 const ROW_HEIGHT = 36;
@@ -142,18 +143,20 @@ function ComparisonPane({
                 </div>
                 {columns.map((column, position) => {
                   const value = row?.[valuesKey][position];
+                  const isDate = column.sdtype === "datetime";
+                  const cellValue = formatDisplayDate(value ?? null, isDate) ?? "";
                   return (
                     <div
                       key={`${valuesKey}-${column.index}`}
                       style={{ width: COLUMN_WIDTH }}
-                      title={value ?? undefined}
+                      title={cellValue || undefined}
                       className={cn(
                         "flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90 transition-colors group-hover/row:bg-muted/20",
                         synthetic &&
                           "bg-primary/5 group-hover/row:bg-primary/10",
                       )}
                     >
-                      <span className="truncate">{value ?? ""}</span>
+                      <span className="truncate">{cellValue}</span>
                     </div>
                   );
                 })}
