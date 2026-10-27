@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ interface ComparisonPaneProps {
   synthetic?: boolean;
 }
 
-function ComparisonPane({
+const ComparisonPane = memo(function ComparisonPane({
   paneRef,
   onScroll,
   columns,
@@ -58,12 +58,27 @@ function ComparisonPane({
   const groupWidth = columns.length * COLUMN_WIDTH;
   const contentWidth = GUTTER_WIDTH + groupWidth;
 
+  const headerCellClass = cn(
+    "flex h-12 shrink-0 flex-col justify-center border-r border-border/40 px-2",
+    synthetic && "bg-primary/5",
+  );
+  const headerSdtypeClass = cn(
+    "truncate text-[10px] uppercase tracking-wide text-muted-foreground",
+    synthetic && "text-primary/70",
+  );
+  const gutterClass =
+    "sticky left-0 z-10 flex shrink-0 items-center justify-center border-r border-border/60 bg-background px-2 text-[11px] tabular-nums text-muted-foreground transition-colors group-hover/row:bg-muted/20";
+  const cellClass = cn(
+    "flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90 transition-colors group-hover/row:bg-muted/20",
+    synthetic && "bg-primary/5 group-hover/row:bg-primary/10",
+  );
+
   return (
     <div
       ref={paneRef}
       onScroll={onScroll}
       aria-label={`${label} rows`}
-      className="h-full min-h-0 min-w-0 overflow-auto"
+      className="h-full min-h-0 min-w-0 overflow-auto [contain:layout_paint]"
     >
       <div style={{ width: contentWidth }}>
         <div className="sticky top-0 z-20 border-b border-border/60 bg-background">
@@ -97,10 +112,7 @@ function ComparisonPane({
               <div
                 key={`${valuesKey}-${column.index}`}
                 style={{ width: COLUMN_WIDTH }}
-                className={cn(
-                  "flex h-12 shrink-0 flex-col justify-center border-r border-border/40 px-2",
-                  synthetic && "bg-primary/5",
-                )}
+                className={headerCellClass}
               >
                 <span
                   className="truncate text-xs font-medium"
@@ -108,12 +120,9 @@ function ComparisonPane({
                 >
                   {column.header}
                 </span>
-                <span
-                  className={cn(
-                    "truncate text-[10px] uppercase tracking-wide text-muted-foreground",
-                    synthetic && "text-primary/70",
-                  )}
-                >
+                 <span
+                   className={headerSdtypeClass}
+                 >
                   {column.sdtype}
                 </span>
               </div>
@@ -128,7 +137,7 @@ function ComparisonPane({
               <div
                 key={item.key}
                 data-index={item.index}
-                className="group/row absolute left-0 top-0 flex border-b border-border/40 transition-colors"
+                className="group/row absolute left-0 top-0 flex border-b border-border/40 transition-colors will-change-transform"
                 style={{
                   width: contentWidth,
                   height: item.size,
@@ -137,7 +146,7 @@ function ComparisonPane({
               >
                 <div
                   style={{ width: GUTTER_WIDTH }}
-                  className="sticky left-0 z-10 flex shrink-0 items-center justify-center border-r border-border/60 bg-background px-2 text-[11px] tabular-nums text-muted-foreground transition-colors group-hover/row:bg-muted/20"
+                  className={gutterClass}
                 >
                   {item.index + 1}
                 </div>
@@ -150,11 +159,7 @@ function ComparisonPane({
                       key={`${valuesKey}-${column.index}`}
                       style={{ width: COLUMN_WIDTH }}
                       title={cellValue || undefined}
-                      className={cn(
-                        "flex shrink-0 items-center truncate border-r border-border/40 px-2 text-xs text-foreground/90 transition-colors group-hover/row:bg-muted/20",
-                        synthetic &&
-                          "bg-primary/5 group-hover/row:bg-primary/10",
-                      )}
+                      className={cellClass}
                     >
                       <span className="truncate">{cellValue}</span>
                     </div>
@@ -173,7 +178,7 @@ function ComparisonPane({
       </div>
     </div>
   );
-}
+});
 
 function PaneButton({
   active,
@@ -248,20 +253,33 @@ export function ComparisonTable({
     return () => cancelAnimationFrame(frame);
   }, [activePane, rowHeight, originalVirtualizer, syntheticVirtualizer]);
 
-  const syncScroll = (
-    source: RefObject<HTMLDivElement | null>,
-    target: RefObject<HTMLDivElement | null>,
-  ) => {
-    const sourceElement = source.current;
-    const targetElement = target.current;
-    if (!sourceElement || !targetElement) return;
-    if (Math.abs(targetElement.scrollTop - sourceElement.scrollTop) > 1) {
-      targetElement.scrollTop = sourceElement.scrollTop;
-    }
-    if (Math.abs(targetElement.scrollLeft - sourceElement.scrollLeft) > 1) {
-      targetElement.scrollLeft = sourceElement.scrollLeft;
-    }
-  };
+  const syncScroll = useCallback(
+    (
+      source: RefObject<HTMLDivElement | null>,
+      target: RefObject<HTMLDivElement | null>,
+    ) => {
+      const sourceElement = source.current;
+      const targetElement = target.current;
+      if (!sourceElement || !targetElement) return;
+      if (Math.abs(targetElement.scrollTop - sourceElement.scrollTop) > 1) {
+        targetElement.scrollTop = sourceElement.scrollTop;
+      }
+      if (Math.abs(targetElement.scrollLeft - sourceElement.scrollLeft) > 1) {
+        targetElement.scrollLeft = sourceElement.scrollLeft;
+      }
+    },
+    [],
+  );
+
+  const syncFromOriginal = useCallback(
+    () => syncScroll(originalRef, syntheticRef),
+    [syncScroll],
+  );
+
+  const syncFromSynthetic = useCallback(
+    () => syncScroll(syntheticRef, originalRef),
+    [syncScroll],
+  );
 
   if (rows.length === 0) {
     return (
@@ -309,7 +327,7 @@ export function ComparisonTable({
         >
           <ComparisonPane
             paneRef={originalRef}
-            onScroll={() => syncScroll(originalRef, syntheticRef)}
+            onScroll={syncFromOriginal}
             columns={columns}
             rows={rows}
             valuesKey="original"
@@ -328,7 +346,7 @@ export function ComparisonTable({
         >
           <ComparisonPane
             paneRef={syntheticRef}
-            onScroll={() => syncScroll(syntheticRef, originalRef)}
+            onScroll={syncFromSynthetic}
             columns={columns}
             rows={rows}
             valuesKey="synthetic"
