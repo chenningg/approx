@@ -36,6 +36,7 @@ export const datasetRowsQueryOptions = (id: string) =>
     queryKey: datasetRowsKey(id),
     queryFn: ({ pageParam }) => getDatasetRows(id, pageParam, ROWS_PAGE_SIZE),
     initialPageParam: 0,
+    retry: retryOnTransientError,
     getNextPageParam: (lastPage) => {
       const next = lastPage.offset + lastPage.rows.length
       return next < lastPage.total ? next : undefined
@@ -46,12 +47,14 @@ export const processStatusQueryOptions = (id: string, jobId: string) =>
   queryOptions({
     queryKey: ['datasets', id, 'process', jobId],
     queryFn: () => getProcessStatus(id, jobId),
+    retry: retryOnTransientError,
   })
 
 export const syntheticDefaultsQueryOptions = (id: string) =>
   queryOptions({
     queryKey: ['datasets', id, 'synthetic', 'defaults'],
     queryFn: () => getSyntheticDefaults(id),
+    retry: retryOnTransientError,
     staleTime: Infinity,
   })
 
@@ -71,6 +74,7 @@ export const syntheticComparisonQueryOptions = (
     queryFn: ({ pageParam }) =>
       getSyntheticComparison(id, jobId, pageParam, COMPARISON_PAGE_SIZE),
     initialPageParam: 0,
+    retry: retryOnTransientError,
     getNextPageParam: (lastPage) => {
       const next = lastPage.offset + lastPage.rows.length
       return next < lastPage.total ? next : undefined
@@ -84,6 +88,7 @@ export const syntheticEvaluationQueryOptions = (
   queryOptions({
     queryKey: ['datasets', id, 'synthetic', jobId, 'evaluation'],
     queryFn: () => getSyntheticEvaluation(id, jobId),
+    retry: retryOnTransientError,
     staleTime: Infinity,
   })
 
@@ -95,6 +100,7 @@ export const syntheticColumnPlotQueryOptions = (
   queryOptions({
     queryKey: ['datasets', id, 'synthetic', jobId, 'column-plot', columnName],
     queryFn: () => getSyntheticColumnPlot(id, jobId, columnName),
+    retry: retryOnTransientError,
     enabled: !!columnName,
     staleTime: Infinity,
   })
