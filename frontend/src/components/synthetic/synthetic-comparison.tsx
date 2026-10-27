@@ -6,6 +6,7 @@ import {
   BarChart2Icon,
   BrainIcon,
   DownloadIcon,
+  ListChecksIcon,
   Loader2Icon,
   SparklesIcon,
 } from "lucide-react";
@@ -286,21 +287,21 @@ export function SyntheticComparisonView({
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger
                 value="evaluation"
-                className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+                className="cursor-pointer transition-all hover:bg-accent hover:text-foreground"
               >
-                <BarChart2Icon className="size-3.5 mr-1.5" />
+                <ListChecksIcon className="size-3.5 mr-1.5" />
                 Evaluation Report
               </TabsTrigger>
               <TabsTrigger
                 value="column-plot"
-                className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+                className="cursor-pointer transition-all hover:bg-accent hover:text-foreground"
               >
                 <BarChart2Icon className="size-3.5 mr-1.5" />
                 Column Distributions
               </TabsTrigger>
               <TabsTrigger
                 value="downstream"
-                className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md"
+                className="cursor-pointer transition-all hover:bg-accent hover:text-foreground"
               >
                 <BrainIcon className="size-3.5 mr-1.5" />
                 Downstream Evaluation
