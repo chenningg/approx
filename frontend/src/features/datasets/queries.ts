@@ -9,6 +9,7 @@ import {
   getSyntheticEvaluation,
   getSyntheticStatus,
   getSyntheticColumnPlot,
+  isNotFoundError,
   runSyntheticMLEvaluation,
 } from './api'
 
@@ -20,10 +21,14 @@ export const datasetKey = (id: string) => ['datasets', id] as const
 export const datasetRowsKey = (id: string) =>
   ['datasets', id, 'rows'] as const
 
+const retryOnTransientError = (failureCount: number, error: unknown) =>
+  !isNotFoundError(error) && failureCount < 3
+
 export const datasetQueryOptions = (id: string) =>
   queryOptions({
     queryKey: datasetKey(id),
     queryFn: () => getDataset(id),
+    retry: retryOnTransientError,
   })
 
 export const datasetRowsQueryOptions = (id: string) =>
@@ -54,6 +59,7 @@ export const syntheticStatusQueryOptions = (id: string, jobId: string) =>
   queryOptions({
     queryKey: ['datasets', id, 'synthetic', jobId],
     queryFn: () => getSyntheticStatus(id, jobId),
+    retry: retryOnTransientError,
   })
 
 export const syntheticComparisonQueryOptions = (

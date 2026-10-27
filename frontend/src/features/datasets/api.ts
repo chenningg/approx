@@ -15,6 +15,20 @@ import type {
   SyntheticStatus,
 } from './types'
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export function isNotFoundError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
 export async function uploadDataset(file: File): Promise<DatasetPreview> {
   const form = new FormData()
   form.append('file', file)
@@ -29,8 +43,9 @@ export async function uploadDataset(file: File): Promise<DatasetPreview> {
     const error = (await response.json().catch(() => null)) as {
       detail?: string
     } | null
-    throw new Error(
+    throw new ApiError(
       error?.detail ?? `Upload failed with status ${response.status}`,
+      response.status,
     )
   }
 
@@ -43,7 +58,10 @@ export async function getDataset(id: string): Promise<DatasetPreview> {
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to load dataset (status ${response.status})`)
+    throw new ApiError(
+      `Failed to load dataset (status ${response.status})`,
+      response.status,
+    )
   }
 
   return (await response.json()) as DatasetPreview
@@ -65,7 +83,10 @@ export async function getDatasetRows(
   )
 
   if (!response.ok) {
-    throw new Error(`Failed to load rows (status ${response.status})`)
+    throw new ApiError(
+      `Failed to load rows (status ${response.status})`,
+      response.status,
+    )
   }
 
   return (await response.json()) as RowsPage
@@ -106,8 +127,9 @@ export async function startProcess(
     const error = (await response.json().catch(() => null)) as {
       detail?: string
     } | null
-    throw new Error(
+    throw new ApiError(
       error?.detail ?? `Processing failed to start (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -124,8 +146,9 @@ export async function getProcessStatus(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       `Failed to load processing status (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -143,8 +166,9 @@ export async function downloadProcessed(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       `Failed to download the processed file (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -175,9 +199,10 @@ export async function getSyntheticDefaults(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       (await readDetail(response)) ??
         `Failed to load synthetic settings (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -196,9 +221,10 @@ export async function startSynthetic(
   })
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       (await readDetail(response)) ??
         `Synthetic generation failed to start (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -215,8 +241,9 @@ export async function getSyntheticStatus(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       `Failed to load synthetic status (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -240,9 +267,10 @@ export async function getSyntheticComparison(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       (await readDetail(response)) ??
         `Failed to load synthetic comparison (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -259,9 +287,10 @@ export async function getSyntheticEvaluation(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       (await readDetail(response)) ??
         `Failed to evaluate synthetic data (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -279,8 +308,9 @@ export async function downloadSynthetic(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       `Failed to download the synthetic file (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -310,9 +340,10 @@ export async function getSyntheticColumnPlot(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       (await readDetail(response)) ??
         `Failed to load column plot (status ${response.status})`,
+      response.status,
     )
   }
 
@@ -335,9 +366,10 @@ export async function runSyntheticMLEvaluation(
   )
 
   if (!response.ok) {
-    throw new Error(
+    throw new ApiError(
       (await readDetail(response)) ??
         `Failed to run ML evaluation (status ${response.status})`,
+      response.status,
     )
   }
 

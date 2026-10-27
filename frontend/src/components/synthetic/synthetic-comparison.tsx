@@ -13,6 +13,7 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { NotFound } from "@/components/not-found";
 import { ColumnPlot } from "@/components/synthetic/column-plot";
 import { ComparisonTable } from "@/components/synthetic/comparison-table";
 import { EvaluationReport } from "@/components/synthetic/evaluation-report";
@@ -29,7 +30,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { downloadSynthetic } from "@/features/datasets/api";
+import { downloadSynthetic, isNotFoundError } from "@/features/datasets/api";
 import {
   datasetQueryOptions,
   syntheticComparisonQueryOptions,
@@ -156,6 +157,17 @@ export function SyntheticComparisonView({
   }
 
   if (dataset.isError || statusQuery.isError) {
+    if (isNotFoundError(dataset.error) || isNotFoundError(statusQuery.error)) {
+      return (
+        <NotFound
+          message={
+            isNotFoundError(dataset.error)
+              ? "This dataset no longer exists."
+              : "This synthetic dataset no longer exists."
+          }
+        />
+      );
+    }
     return (
       <ErrorPanel
         title="Could not load this comparison"

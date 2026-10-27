@@ -10,7 +10,8 @@ import { ProcessDialog } from "./process-dialog";
 import { RedactDialog } from "./redact-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { startProcess } from "@/features/datasets/api";
+import { NotFound } from "@/components/not-found";
+import { isNotFoundError, startProcess } from "@/features/datasets/api";
 import {
   datasetQueryOptions,
   datasetRowsQueryOptions,
@@ -136,6 +137,9 @@ export function DatasetPreview({ id, mode }: DatasetPreviewProps) {
   }
 
   if (dataset.isError) {
+    if (isNotFoundError(dataset.error)) {
+      return <NotFound message="This dataset no longer exists." />;
+    }
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
         <p className="font-medium">Could not load this dataset</p>

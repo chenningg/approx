@@ -12,7 +12,8 @@ import {
 import { SyntheticJobDialog } from "@/components/synthetic/synthetic-job-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { startSynthetic } from "@/features/datasets/api";
+import { NotFound } from "@/components/not-found";
+import { isNotFoundError, startSynthetic } from "@/features/datasets/api";
 import {
   datasetQueryOptions,
   datasetRowsQueryOptions,
@@ -230,6 +231,9 @@ export function SyntheticGenerator({ id }: SyntheticGeneratorProps) {
   }
 
   if (dataset.isError || defaults.isError) {
+    if (isNotFoundError(dataset.error) || isNotFoundError(defaults.error)) {
+      return <NotFound message="This dataset no longer exists." />;
+    }
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
         <p className="font-medium">Could not load this dataset</p>
