@@ -1,16 +1,17 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
+  ArrowRight,
   Database,
   ShieldCheck,
-  Sparkles,
   TableProperties,
   type LucideIcon,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import wallpaper from "@/assets/astronaut-facing-mysterious-black-hole-live-wallpaper.webm";
 
 type Feature = {
   icon: LucideIcon;
@@ -49,8 +50,18 @@ const features: Feature[] = [
 function LandingPage() {
   return (
     <>
-      <section className="approx-bg">
-        <div className="mx-auto max-w-3xl px-4 pb-24 pt-20 text-center sm:px-6 sm:pt-28">
+      <section className="relative flex min-h-svh items-center overflow-hidden">
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          src={wallpaper}
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-background/50" />
+        <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-6xl">
             Synthetic data that{" "}
             <span className="bg-linear-to-r from-violet-400 to-cyan-300 bg-clip-text text-transparent">
@@ -63,16 +74,16 @@ function LandingPage() {
             original without exposing it.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="h-11 px-8 text-base">
-              <Link to="/login">Log in</Link>
-            </Button>
             <Button
               asChild
               variant="outline"
               size="lg"
-              className="h-11 px-8 text-base"
+              className="h-11 gap-2 animate-glow-pulse border-violet-400/90 bg-violet-500/25 px-8 text-base text-violet-100 transition-all duration-200 hover:animate-none hover:border-violet-300 hover:bg-violet-500/35 hover:text-white hover:shadow-[inset_0_0_30px_-2px_rgba(139,92,246,1)]"
             >
-              <a href="#features">How it works</a>
+              <Link to="/login">
+                Log in
+                <ArrowRight className="size-4" />
+              </Link>
             </Button>
           </div>
         </div>
