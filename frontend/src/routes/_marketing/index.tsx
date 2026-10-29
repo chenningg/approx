@@ -51,13 +51,6 @@ function LandingPage() {
     <>
       <section className="approx-bg">
         <div className="mx-auto max-w-3xl px-4 pb-24 pt-20 text-center sm:px-6 sm:pt-28">
-          <Badge
-            variant="outline"
-            className="mb-6 h-6 gap-1.5 rounded-full px-3"
-          >
-            <Sparkles className="size-3" />
-            Generate representative fake data
-          </Badge>
           <h1 className="font-heading text-4xl font-semibold tracking-tight sm:text-6xl">
             Synthetic data that{" "}
             <span className="bg-linear-to-r from-violet-400 to-cyan-300 bg-clip-text text-transparent">
@@ -67,7 +60,7 @@ function LandingPage() {
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
             Upload a dataset and ApproX learns its structure and distribution,
             then generates fake data that is statistically representative of the
-            original — without exposing it.
+            original without exposing it.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="h-11 px-8 text-base">
