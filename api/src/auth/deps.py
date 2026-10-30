@@ -16,9 +16,7 @@ async def get_auth_user(
     When auth is disabled, always returns a synthetic demo user.
     """
     if not config.auth_enabled:
-        return VerifyResponse(
-            email="auth_disabled@htx.gov.sg", username="auth_disabled"
-        )
+        return VerifyResponse(email="auth_disabled@test.com", username="auth_disabled")
 
     if not approx_sid:
         raise HTTPException(

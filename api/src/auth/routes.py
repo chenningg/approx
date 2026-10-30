@@ -37,7 +37,7 @@ async def login(
 
         return LoginResponse(
             session_id="auth_disabled",
-            email="auth_disabled@htx.gov.sg",
+            email="auth_disabled@test.com",
             username="auth_disabled",
         )
 
