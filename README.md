@@ -1,6 +1,6 @@
 # Approx
 
-Greenfield project to generate fake data based on some uploaded dataset.
+Greenfield project to generate representative synthetic data based on some uploaded real (ground truth) dataset.
 
 ## Running
 
@@ -9,3 +9,5 @@ You will need to go to the `/frontend` folder and make a `.env` file, copying th
 Then, in the root folder, run `make up` (requires GNU Make for Windows). This starts up the Docker containers for both the api and the frontend, along with the Laya classifier for column detection.
 
 To run only the frontend or the api, go into the folder directly to use the `compose.yaml` files or directly via `make dev` for hot reload.
+
+Example Excel files to upload can be found under `/examples`, along with a helper script to generate more fake ("real") data for testing.
