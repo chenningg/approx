@@ -11,7 +11,7 @@ from src.auth.utils import hash_password
 
 async def seed_admin_users() -> None:
     async with async_session_factory() as session:
-        admin_email = "approx_admin@htx.gov.sg"
+        admin_email = "approx_admin@test.com"
 
         # Seed admin users
         existing = await session.scalar(
